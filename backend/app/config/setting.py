@@ -99,8 +99,10 @@ class Settings(BaseSettings):
     AUTOFETCH: bool = False             # 是否自动获取
     EXPIRE_ON_COMMIT: bool = False      # 是否在提交时过期
 
+    # 数据库类型
+    DB_DRIVER: str = 'postgresql'
+
     # SQLite数据库连接
-    DB_DRIVER: str
     SQLITE_DB_NAME: str
 
     # MySQL数据库连接
@@ -111,28 +113,28 @@ class Settings(BaseSettings):
     MYSQL_DB_NAME: str
 
     # PostgreSQL数据库连接
-    POSTGRESQL_USER: str
-    POSTGRESQL_PASSWORD: str
-    POSTGRESQL_HOST: str
-    POSTGRESQL_PORT: int
-    POSTGRESQL_DB_NAME: str
+    POSTGRESQL_USER: str = 'fastapi'
+    POSTGRESQL_PASSWORD: str = 'fastapi-root'
+    POSTGRESQL_HOST: str = 'localhost'
+    POSTGRESQL_PORT: int = '5432'
+    POSTGRESQL_DB_NAME: str = 'fastapi'
 
     # ================================================= #
     # ******************** MongoDB配置 ******************* #
     # ================================================= #
-    MONGO_DB_ENABLE: bool # 是否启用MongoDB
-    MONGO_DB_USER: str
-    MONGO_DB_PASSWORD: str
-    MONGO_DB_HOST: str
-    MONGO_DB_PORT: int
+    MONGO_DB_ENABLE: bool = True # 是否启用MongoDB
+    MONGO_DB_USER: str = 'fastapi'
+    MONGO_DB_PASSWORD: str = 'fastapi-root'
+    MONGO_DB_HOST: str = 'localhost'
+    MONGO_DB_PORT: int = '27017'
     MONGO_DB_NAME: str
 
     # ================================================= #
     # ******************** Redis配置 ******************* #
     # ================================================= #
-    REDIS_ENABLE: bool  # 是否启用Redis
-    REDIS_HOST: str
-    REDIS_PORT: int
+    REDIS_ENABLE: bool = True # 是否启用Redis
+    REDIS_HOST: str = 'localhost'
+    REDIS_PORT: int = '6379'
     REDIS_DB_NAME: int
     REDIS_PASSWORD: str
 

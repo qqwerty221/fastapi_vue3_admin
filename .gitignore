@@ -7,6 +7,8 @@ __pycache__
 
 venv
 
+devops/database/
+
 backend/logs
 backend/venv
 backend/__pycache__

@@ -1,0 +1,46 @@
+version: '3.8'
+
+networks:
+  database_network:
+    driver: bridge
+
+services:
+  postgres:
+    image: postgres
+    container_name: postgres-container
+    environment:
+      POSTGRES_USER: fastapi
+      POSTGRES_PASSWORD: fastapi-root
+      POSTGRES_DB: fastapi
+    ports:
+      - "5432:5432"
+    networks:
+      - database_network
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./data/logs/postgres:/var/log/postgresql
+
+  redis:
+    image: redis
+    container_name: redis-container
+    ports:
+      - "6379:6379"
+    networks:
+      - database_network
+    volumes:
+      - ./data/redis:/data
+      - ./data/logs/redis:/var/log/redis
+
+  mongodb:
+    image: mongo
+    container_name: mongodb-container
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: fastapi
+      MONGO_INITDB_ROOT_PASSWORD: fastapi-root
+    ports:
+      - "27017:27017"
+    networks:
+      - database_network
+    volumes:
+      - ./data/mongodb:/data/db
+      - ./data/logs/mongodb:/var/log/mongodb
