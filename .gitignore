@@ -3,11 +3,13 @@
 .idea
 .chat
 .DS_Store
+.iml
 __pycache__
 
 venv
 
 devops/database/
+devops/utils/
 
 backend/logs
 backend/venv
