@@ -8,8 +8,9 @@ __pycache__
 
 venv
 
-devops/database/
-devops/utils/
+devops/database/data
+devops/utils/fee_export/config
+devops/utils/git_update/repositories
 
 backend/logs
 backend/venv

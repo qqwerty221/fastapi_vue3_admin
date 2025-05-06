@@ -6,13 +6,13 @@ from playwright.sync_api import sync_playwright, Page, BrowserContext
 
 year = "2025"
 
-for month in ['1','2','3','4']:
+for month in ['4','5']:
     # 获取当前文件的绝对路径
     folder_path = os.path.dirname(os.path.abspath(__file__))
     config_folder = os.path.join(folder_path, "config")
     config_file = os.path.join(config_folder, "cookies.json")
     # 将输出文件扩展名更改为 .xlsx
-    export_file = os.path.join(folder_path, "export_" + month + ".xlsx")
+    export_file = os.path.join(config_folder, "export_" + month + ".xlsx")
 
 
     fee_page = "https://cloud.cmft.com/api/v1/cloud/bills/projects/dailybills?__limit=999999&__offset=0&year=" + year + "&month=" + month

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -20,8 +20,8 @@ class BaseSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int = Field(description="主键ID")
-    created_at: DateTimeStr = Field(description="创建时间")
-    updated_at: DateTimeStr = Field(description="更新时间")
+    created_at: DateTimeStr = Field(default=datetime.now(), description="创建时间")
+    updated_at: DateTimeStr = Field(default=datetime.now(), description="更新时间")
     creator_id: Optional[int] = Field(default=None, description="创建人ID")
     creator: Optional[UserInfoSchema] = Field(default=None, description="创建人信息")
 
@@ -40,6 +40,6 @@ class UploadResponseSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     file_path: Optional[str] = Field(default=None, description='新文件映射路径')
-    file_name: Optional[str] = Field(default=None, description='新文件名称') 
+    file_name: Optional[str] = Field(default=None, description='新文件名称')
     origin_name: Optional[str] = Field(default=None, description='原文件名称')
     file_url: Optional[str] = Field(default=None, description='新文件访问地址')

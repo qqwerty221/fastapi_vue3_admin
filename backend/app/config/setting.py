@@ -37,6 +37,8 @@ class Settings(BaseSettings):
     # ================================================= #
     # 项目根目录
     BASE_DIR: Path = Path(__file__).parent.parent.parent
+    #脚本根目录
+    SCRIPT_BASE: Path = Path("devops/utils/git_update/repositories")
 
     # ================================================= #
     # ******************* 服务器配置 ****************** #

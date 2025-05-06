@@ -30,3 +30,6 @@ asyncpg==0.30.0     # postgresql 异步操作数据库基于 psycopg2：asyncpg 
 # aiomysql==0.2.0 # mysql 异步操作数据库基于 pymysql：aiomysql 是 pymysql 的异步版本，pymysql 是一个纯 Python 实现的 MySQL 客户端。成熟度：aiomysql 相对较为成熟，社区支持较好，文档也比较完善。
 requests==2.32.3
 playwright
+pydantic~=2.11.3
+starlette~=0.40.0
+pymongo~=4.9.2

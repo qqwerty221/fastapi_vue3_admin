@@ -3,7 +3,7 @@
 from pydantic import BaseModel
 from typing import TypeVar, Sequence, Generic, Dict, Any, List, Union, Optional
 from sqlalchemy.sql.elements import ColumnElement
-from sqlalchemy.orm import selectinload, DeclarativeBase
+from sqlalchemy.orm import selectinload, declarative_base
 from sqlalchemy.engine import Result
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import asc, func, select, delete, Select, desc, update, or_, and_
@@ -14,7 +14,9 @@ from app.api.v1.models.system.user_model import UserModel
 from app.utils.common_util import get_child_id_map, get_child_recursion
 from app.core.exceptions import CustomException
 
-ModelType = TypeVar("ModelType", bound=DeclarativeBase)
+Base = declarative_base()
+
+ModelType = TypeVar("ModelType", bound=Base)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
 UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
 
