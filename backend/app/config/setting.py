@@ -93,8 +93,8 @@ class Settings(BaseSettings):
     ECHO_POOL: bool = False             # 是否显示连接池日志
     POOL_SIZE: int = 20                 # 连接池大小
     MAX_OVERFLOW: int = 10              # 最大溢出连接数
-    POOL_TIMEOUT: int = 30              # 连接超时时间(秒)
-    POOL_RECYCLE: int = 1800            # 连接回收时间(秒)
+    POOL_TIMEOUT: int = 3600            # 连接超时时间(秒)
+    POOL_RECYCLE: int = 3600            # 连接回收时间(秒)
     POOL_PRE_PING: bool = True          # 是否开启连接预检
     FUTURE: bool = True                 # 是否使用SQLAlchemy 2.0特性
     AUTOCOMMIT: bool = False            # 是否自动提交

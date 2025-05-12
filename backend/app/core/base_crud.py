@@ -36,6 +36,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         self.auth = auth
         self.db: AsyncSession = auth.db
         self.current_user = auth.user
+
     async def get(self, **kwargs) -> Optional[ModelType]:
         """
         根据条件获取单个对象
@@ -52,11 +53,11 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         try:
             conditions = await self.__build_conditions(**kwargs)
             sql = (select(self.model)
-                  .where(*conditions)
-                  .distinct())
+                   .where(*conditions)
+                   .distinct())
             if hasattr(self.model, "creator"):
                 sql = sql.options(selectinload(self.model.creator))
-            
+
             result: Result = await self.db.execute(sql)
             obj = result.scalars().unique().first()
             return obj
@@ -70,6 +71,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         Args:
             search: 查询条件,格式为 {'id': value, 'name': value}
             order_by: 排序字段,格式为 [{'id': 'asc'}, {'name': 'desc'}]
+            named_select: 过滤返回的字段
             
         Returns:
             Sequence[ModelType]: 对象列表
@@ -81,9 +83,39 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             conditions = await self.__build_conditions(**search) if search else []
             order = order_by or [{'id': 'asc'}]
             sql = (select(self.model)
-                  .where(*conditions)
-                  .order_by(*self.__order_by(order))
-                  .distinct())
+                   .where(*conditions)
+                   .order_by(*self.__order_by(order))
+                   .distinct())
+            sql = await self.__filter_permissions(sql)
+            result: Result = await self.db.execute(sql)
+            return result.scalars().unique().all()
+        except Exception as e:
+            raise CustomException(msg=f"列表查询失败: {str(e)}")
+
+    async def partial_list(self, search: Dict = None, order_by: List[Dict[str, str]] = None, named_select: List[str] = None) -> \
+            List[any]:
+        """
+        根据条件获取对象列表和总数
+
+        Args:
+            search: 查询条件,格式为 {'id': value, 'name': value}
+            order_by: 排序字段,格式为 [{'id': 'asc'}, {'name': 'desc'}]
+            named_select: 过滤返回的字段
+
+        Returns:
+            Sequence[ModelType]: 对象列表
+
+        Raises:
+            CustomException: 查询失败时抛出异常
+        """
+        try:
+            conditions = await self.__build_conditions(**search) if search else []
+            order = order_by or [{'id': 'asc'}]
+            columns: list = named_select if named_select else [column.name for column in self.model.__table__.columns]
+            sql = (select(*[getattr(self.model, field) for field in columns])
+                   .where(*conditions)
+                   .order_by(*self.__order_by(order))
+                   .distinct())
             sql = await self.__filter_permissions(sql)
             result: Result = await self.db.execute(sql)
             return result.scalars().unique().all()
@@ -106,13 +138,13 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         try:
             obj_dict = data if isinstance(data, dict) else data.model_dump()
             obj = self.model(**obj_dict)
-            
+
             if hasattr(self.model, "creator") and self.current_user:
                 # 设置创建人ID
                 obj.creator_id = self.current_user.id
                 # 设置创建人对象
                 obj.creator = self.current_user
-                
+
             self.db.add(obj)
             await self.db.flush()
             await self.db.refresh(obj)
@@ -137,11 +169,11 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         try:
             obj_dict = data if isinstance(data, dict) else data.model_dump(exclude_unset=True, exclude={"id"})
             obj = await self.get(id=id)
-            
+
             for key, value in obj_dict.items():
                 if hasattr(obj, key):
                     setattr(obj, key, value)
-                    
+
             await self.db.flush()
             await self.db.refresh(obj)
             return obj
@@ -174,7 +206,8 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             CustomException: 清空失败时抛出异常
         """
         try:
-            sql = delete(self.model)
+            # sql = delete(self.model)
+            sql = 'Truncate table ' + self.model.__table__.schema + '.' + self.model.__tablename__ + ';'
             await self.db.execute(sql)
             await self.db.flush()
         except Exception as e:
@@ -198,7 +231,8 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         except Exception as e:
             raise CustomException(msg=f"批量更新失败: {str(e)}")
 
-    async def update_relationships(self, objs_to_update: List[ModelType], relationship_field: str, related_objs: List[ModelType]) -> None:
+    async def update_relationships(self, objs_to_update: List[ModelType], relationship_field: str,
+                                   related_objs: List[ModelType]) -> None:
         """
         更新对象关系
         
@@ -224,21 +258,21 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         # 1. 如果模型没有creator字段,则不需要过滤
         if not hasattr(self.model, "creator"):
             return sql
-        
+
         sql = sql.options(selectinload(self.model.creator))
-        
+
         # 2. 超级管理员可以查看所有数据
         if not self.current_user or self.current_user.is_superuser:
             return sql
-            
+
         # 3. 如果用户没有部门或角色,则只能查看自己的数据
         if not self.current_user.dept_id or not self.current_user.roles:
             return sql.where(self.model.creator_id == self.current_user.id)
-        
+
         # 4. 获取用户所有角色的权限范围
         data_scopes = set()
         dept_ids = set()
-        
+
         # data_scope 数据权限范围说明:
         # 1: 仅本人数据权限
         # 2: 本部门数据权限  
@@ -250,37 +284,37 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             # 如果有全部数据权限,直接返回所有数据
             if role.data_scope == 4:
                 return sql
-                
+
             data_scopes.add(role.data_scope)
             # 如果是自定义权限,添加自定义部门
             if role.data_scope == 5:
                 dept_ids.update({dept.id for dept in role.depts})
-        
+
         conditions = []
-        
+
         # 5. 处理各种数据权限范围
         if 1 in data_scopes:
             # 1、仅本人数据
             conditions.append(self.model.creator_id == self.current_user.id)
-        
+
         if 2 in data_scopes:
             # 2、本部门数据
             dept_ids.add(self.current_user.dept_id)
-            
+
         if 3 in data_scopes:
             # 3、本部门及以下数据
             dept_objs = await CRUDBase(DeptModel, self.auth).list()
             id_map = get_child_id_map(dept_objs)
             dept_child_ids = get_child_recursion(id=self.current_user.dept_id, id_map=id_map)
             dept_ids.update(dept_child_ids)
-        
+
         if dept_ids:
             conditions.append(self.model.creator.has(UserModel.dept_id.in_(list(dept_ids))))
-        
+
         # 6. 组合所有条件
         if conditions:
             return sql.where(and_(*conditions))
-            
+
         return sql.where(self.model.creator_id == self.current_user.id)
 
     def __order_by(self, order_by: List[Dict[str, str]]) -> List[ColumnElement]:

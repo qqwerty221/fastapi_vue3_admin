@@ -9,8 +9,10 @@ __pycache__
 venv
 
 devops/database/data
+devops/database/milvus
 devops/utils/fee_export/config
 devops/utils/git_update/repositories
+devops/utils/ctm_parse/asset
 
 backend/logs
 backend/venv

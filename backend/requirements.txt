@@ -33,3 +33,6 @@ playwright
 pydantic~=2.11.3
 starlette~=0.40.0
 pymongo~=4.9.2
+lxml
+psycopg2
+sqlglot

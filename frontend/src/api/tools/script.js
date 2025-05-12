@@ -1,11 +1,11 @@
 import request from '@/utils/request.js'
 
 // 获取脚本列表
-export function getScriptList(body) {
+export function getScriptList(query) {
   return request({
     url: '/api/v1/tools/script/list',
     method: 'get',
-    data: body
+    params: query
   })
 }
 
