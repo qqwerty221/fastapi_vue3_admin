@@ -34,7 +34,7 @@ class DialogSchema(BaseSchema):
     script_id: int = Field(default=None, description='所属脚本id')
     dialog_type: str = Field(default=None, description='语句类型')
     dialog_content: str = Field(default=None, description='语句类型')
-    dialog_parsed: str = Field(default=None, description='解析结果')
+    dialog_parsed: dict = Field(default=None, description='解析结果')
     dialog_order: int = Field(default=None, description='段落序号')
     target_tables: list = Field(default=None, description='目标表')
     source_tables: list = Field(default=None, description='来源表')

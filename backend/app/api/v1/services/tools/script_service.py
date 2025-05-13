@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import traceback
 from datetime import datetime
 from typing import List, Dict
 
@@ -19,8 +20,15 @@ class ScriptService:
     """脚本服务"""
 
     @classmethod
-    async def get_script_list(cls, auth: AuthSchema, search: ScriptQueryParams) -> List[Dict]:
+    async def get_script_list(cls, auth: AuthSchema, search: ScriptQueryParams=None) -> List[Dict]:
         """获取脚本列表"""
+        if not search:
+            search = ScriptQueryParams(
+                app_name=None,
+                script_name=None,
+                is_parsed=None
+            )
+
         script_list = await ScriptCRUD(auth).list(search=search.__dict__)
         # 将ScriptModel对象转换为可序列化的字典格式
         result_list = []
@@ -41,15 +49,18 @@ class ScriptService:
         return new_script_dict
 
     @classmethod
-    async def create_dialog_service(cls, auth: AuthSchema, script_id: int, data: List[DialogCreateSchema]) -> Dict:
-        dialog_ids = DialogCRUD.get_ids_by_script_id(script_id=script_id)
+    async def create_dialog_service(cls, auth: AuthSchema, script_id: int, data: List[DialogCreateSchema]) -> None:
+        dialog_ids = await DialogCRUD(auth).get_ids_by_script_id(script_id=script_id)
         try:
             await DialogCRUD(auth).delete(ids=dialog_ids)
 
             for dialog in data:
                 new_dialog = await DialogCRUD(auth).create(data=dialog)
+
+            await ScriptCRUD(auth).set(ids=[script_id], is_parsed=True)
         except Exception as e:
-            CustomException(msg=f'{script_id}语句创建失败')
+            auth.db.rollback()
+            raise CustomException(msg=f'{script_id}语句创建失败')
 
     @classmethod
     async def import_scripts(cls, auth: AuthSchema) -> None:
@@ -90,7 +101,7 @@ class ScriptService:
                             script_type = 'FLINK'
                         else:
                             script_type = 'ERROR'
-                        logger.info(script_type)
+
                         # 读取文件内容
                         try:
                             with open(file_path, 'r', encoding='utf-8') as f:
@@ -119,7 +130,12 @@ class ScriptService:
     @classmethod
     async def parse_scripts(cls, auth: AuthSchema) -> None:
         """解析脚本"""
-        result_dict_list = await cls.get_script_list(auth=auth)
+        result_dict_list = await cls.get_script_list(auth=auth,
+                                                     search=ScriptQueryParams(app_name=None,
+                                                                              script_name=None,
+                                                                              is_parsed=False,
+                                                                              script_type='HIVE'
+                                                                              ))
         for script in result_dict_list:
             try:
                 parsed_dialog_list = sqlglot.parse(script['script_content'])
@@ -140,20 +156,24 @@ class ScriptService:
 
                     source_tables = source_tables - target_tables - cte_to_remove
 
-                    create_dialog_list.append(
-                        DialogCreateSchema(
-                            id=None,
-                            script_id=script['id'],
-                            dialog_type=dialog.__class__.__name__,
-                            dialog_content=dialog.sql(),
-                            dialog_parsed=dialog,
-                            dialog_order=index,
-                            target_tables=target_tables,
-                            source_tables=source_tables
-                        ))
+                    create_dialog = DialogCreateSchema(
+                        id=None,
+                        script_id=script['id'],
+                        dialog_type=dialog.__class__.__name__,
+                        dialog_content=dialog.sql(),
+                        dialog_parsed=dialog.dump(),
+                        dialog_order=index,
+                        target_tables=target_tables,
+                        source_tables=source_tables
+                    )
 
-                result = await cls.create_dialog_service(script_id=script['id'], data=create_dialog_list)
+                    create_dialog_list.append(create_dialog)
+
+                await cls.create_dialog_service(auth=auth, script_id=script["id"], data=create_dialog_list)
+
 
             except Exception as e:
-                logger.info(f'{script["script_name"]}脚本解析异常')
+                error_message = traceback.format_exc()
+                logger.error(f"异常原因: {error_message}")
+                # logger.info(f'{script["script_name"]}脚本解析异常')
                 continue

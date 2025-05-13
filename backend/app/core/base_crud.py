@@ -116,7 +116,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
                    .where(*conditions)
                    .order_by(*self.__order_by(order))
                    .distinct())
-            sql = await self.__filter_permissions(sql)
+            # sql = await self.__filter_permissions(sql)
             result: Result = await self.db.execute(sql)
             return result.scalars().unique().all()
         except Exception as e:

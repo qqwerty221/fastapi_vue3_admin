@@ -96,7 +96,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
-import { getScriptList, importScripts, parseScript } from '@/api/tools/script'
+import { getScriptList, importScripts, parseScripts } from '@/api/tools/script'
 import type { searchDataType, tableDataType } from './types';
 
 // 表格数据
@@ -259,7 +259,7 @@ const handleImport = async () => {
 // 导入脚本
 const handleParse = async () => {
   tableLoading.value = true;
-  parseScript().then(response =>{
+  parseScripts().then(response =>{
     const result = response.data
   }).catch(error => {
     console.log(error);

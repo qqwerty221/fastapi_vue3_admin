@@ -16,8 +16,6 @@ export interface tableDataType {
     updated_at?: string;
     creator_id?: number;
     creator?: creatorType;
-
-
 }
 
 interface creatorType {

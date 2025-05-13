@@ -16,3 +16,12 @@ export function importScripts() {
     method: 'post'
   })
 }
+
+
+// 导入脚本
+export function parseScripts() {
+  return request({
+    url: '/api/v1/tools/script/parse',
+    method: 'post',
+  })
+}
