@@ -1,13 +1,17 @@
 import sqlglot
 
-def extract_tables(script):
 
+def extract_tables(script):
+    # 获取分区表分区字段
     parsed_dialog_list = sqlglot.parse(script)
     for i in parsed_dialog_list:
-        print(i)
-        print(type(i))
-        print(i.dump())
+        if isinstance(i, sqlglot.exp.Insert):
+            if 'partition' in i.args['this'].args:
+                print(",".join([col_name.name for col_name in i.args['this'].args['partition'].args['expressions']]))
+            if isinstance(i.args['expression'], sqlglot.exp.Select):
+                print(i.args['expression'].selects[-1].this)
 
+    # 获取
 
 
 
@@ -23,127 +27,72 @@ def extract_tables(script):
     #
     # return list(source_tables), list(target_tables)
 
+
 # 示例 HQL 语句
 script = """
 
---------------------------------------------------------------------------------------------
--- 脚本名称:S-HA20_AMH_RENTAL_INDEX_DAILY_SS
--- 脚本功能:伊敦出租指标日报表
--- 分析主题:公寓-出租指标
--- 输入表:    DWD_CMSK.HOEST0160_ORG_ACCOUNT_DIM                组织维表
---           ADS_CMSK_AMH.HOEST0160_R_VACANT_CHECKOUT_DAILY_SS 出租日报表
---           dwd_cmsk.HOEST0160_RENTAL_RATE_PLUS_SS            出租周度数据表
---           DWS_CMSK.HS03_FMCS_TARGET_VALUE_FILLING_PRJ_CS    填报目标值
+-- 功能：数据入湖历史表stg到ods
+-- 作者: modalin
+-- 创建日期：2022-08-05
+-- 修改日期：
+-- 返回值：无
+-- 脚本名称: HQL_P_ODS_CMSK_HOEST0165_SYS_LOG_SS
 
--- 输出表: ADS_CMSK_AMH.HA20_AMH_RENTAL_INDEX_DAILY_SS   伊敦出租指标日报表
--- 创建时间:2024-06-03
--- 创建人:CPL
+set
+  hive.exec.dynamic.partition.mode = nonstrict;
+set
+  hive.auto.convert.join = true;
 
--- 修改时间:2024-08-14
--- 填充预留字段值 净租金收入、可出租、已出租目标值字段
--- 创建人:CPL
+create table if not exists  ods_cmsk.HOEST0165_USER_VISIT_HISTORY_SS ( 
+  ID    string  COMMENT '主键',
+  IP    string  COMMENT '记录访问的ip信息',
+  VISIT_TYPE    string  COMMENT '0是pc  1是移动',
+  STAFF_USER_ID     string  COMMENT '用户ID 用户ID,sys_staff表的ID字段',
+  STAFF_USER_NAME   string ,
+  FIRST_CODE    string  COMMENT '第一层级菜单',
+  FIRST_NAME    string  COMMENT '第一层级菜单名称',
+  MENU_CODE     string  COMMENT '菜单代码 菜单代码',
+  MENU_NAME     string  COMMENT '菜单名字',
+  CREATE_DAY string ,
+  REVISION    string  COMMENT '乐观锁',
+  CREATED_BY string  ,
+  CREATE_TIME     string  COMMENT '创建时间',
+  UPDATED_BY  string ,
+  UPDATE_TIME     string  COMMENT '更新时间' ,
 
--- 修改时间：2024-11-27
--- 修改逻辑：1、过滤掉虚拟项目数据  2、取消虚拟房间数据的过滤
--- 创建人：Hulingli
---------------------------------------------------------------------------------------------  
-
--- 资源参数(复杂逻辑)
-set hive.exec.dynamic.partition.mode = nonstrict;
-set hive.execution.engine=spark;
-set spark.dynamicAllocation.enabled=true;
-set spark.dynamicAllocation.maxExecutors=3;
-set spark.dynamicAllocation.minExecutors=3;
-set spark.executor.memory=4G;
-set spark.executor.cores=4;
-set spark.app.name = H_HA03_CMSK_MANAGE_COCKPIT_SS:曹鹏磊;
--- set hive.exec.max.dynamic.partitions=1000;  --  这个值需要根据实际情况增加
-
-
-INSERT OVERWRITE TABLE ADS_CMSK_AMH.HA20_AMH_RENTAL_INDEX_DAILY_SS
-SELECT 
- NULL             -- 所属管理主体编码
-,ORG_DIM.COMPANY  -- 所属管理主体名称
-,GYZX
-,公寓中心
-,GZGY
-,长租公寓
-,ORG_DIM.DISTRICT_NAME
-,NULL
-,ORG_DIM.CITY_NAME
-,DATE_DIM.DATE_D
-,DATE_DIM.DATE_M
-,YEAR(DATE_DIM.DATE_D)
-,ORG_DIM.PROJECT_ID
-,ORG_DIM.PROJECT_NAME
-,DAILY.KCZ_ROOM_NUM
-,DAILY.RENTABLE_AREA
-,DAILY.RENTED_AREA
-,MONTH_DATA.RENTED_AREA
-,MONTH_DATA.RENTABLE_AREA
-,MONTH_DATA.PRIME_BUSINESS_INCOME
-,MONTH_DATA.RENT_AMOUNT
-,TARGET_DATA.INCOME_MONTH_TARGET
-,TARGET_DATA.NET_RENTAL
-,TARGET_DATA.RENTED_AREA
-,TARGET_DATA.RENTABLE_AREA
-,DATE_DIM.DATE_D
-FROM (SELECT DISTINCT COMPANY,DISTRICT_NAME,CITY_NAME,PROJECT_ID,PROJECT_NAME FROM DWD_CMSK.HOEST0160_ORG_ACCOUNT_DIM) ORG_DIM 
-JOIN (SELECT M_DATE_CODE AS DATE_D, DATE_FORMAT(M_DATE_CODE, yyyy-MM) AS DATE_M FROM DWD_CMSK.HD00_DATE_DIM_CS WHERE M_DATE_CODE = DATE_SUB(CURRENT_DATE,1)) DATE_DIM -- 维度表方便刷历史数据
-LEFT JOIN ( SELECT 
-              PER_DAY       -- 数据日期
-             ,PROJECT_ID    -- 项目ID
-             ,PROJECT_NAME  -- 项目名称
-             ,SUM(KCZ_ROOM_NUM)  AS  KCZ_ROOM_NUM  -- 可出租房间数
-             ,SUM(RENTED_AREA)   AS  RENTED_AREA   -- 已出租房间面积
-             ,SUM(RENTABLE_AREA) AS  RENTABLE_AREA -- 可出租房间面积
-            FROM ADS_CMSK_AMH.HOEST0160_R_VACANT_CHECKOUT_DAILY_SS  -- 日报
-            WHERE PER_DAY = DATE_SUB(CURRENT_DATE, 1) 
-            GROUP BY PER_DAY
-                    ,PROJECT_ID
-                    ,PROJECT_NAME
-          ) DAILY
-    ON ORG_DIM.PROJECT_ID = DAILY.PROJECT_ID
-   AND DATE_DIM.DATE_D = DAILY.PER_DAY
-LEFT JOIN (
-            SELECT 
-              DATE_FORMAT(ADD_MONTHS(DN, -1), yyyy-MM)  DN   -- 数据日期
-             ,PROJECT_ID                                      -- 项目ID
-             ,PROJECT_NAME                                    -- 项目名称
-             ,SUM(RENTED_AREA)               AS RENTED_AREA             -- 月已出租面积
-             ,SUM(RENTABLE_AREA)             AS RENTABLE_AREA           -- 月可出租面积
-             ,SUM(PRIME_BUSINESS_INCOME)     AS PRIME_BUSINESS_INCOME   -- 月度营业收入
-             ,SUM(RENT_AMOUNT)               AS RENT_AMOUNT             -- 月客房收入
-            FROM dwd_cmsk.HOEST0160_RENTAL_RATE_PLUS_SS      
-            WHERE DATE_FORMAT(ADD_MONTHS(DN, -1), yyyy-MM) = DATE_FORMAT(DATE_SUB(CURRENT_DATE, 1), yyyy-MM) 
-            --  AND house_structure in ('01','03')           -- 2024-11-27修改逻辑，取消虚拟房间的过滤
-            GROUP BY DATE_FORMAT(ADD_MONTHS(DN, -1), yyyy-MM)
-                    ,PROJECT_ID
-                    ,PROJECT_NAME
-          ) MONTH_DATA
-    ON  ORG_DIM.PROJECT_ID = MONTH_DATA.PROJECT_ID
-   AND DATE_DIM.DATE_M = MONTH_DATA.DN
-LEFT JOIN (  -- 2024-08-14 补齐 净租金收入、可出租、已出租目标值字段
-            SELECT 
-             DN 
-            ,PROJECT_ID
-            ,PROJECT_NAME
-            ,INCOME_MONTH_TARGET    -- 收入目标
-            ,NET_RENTAL             -- 净租金收入目标
-            ,RENTABLE_AREA          -- 可出租目标
-            ,RENTED_AREA            -- 已出租目标
-            FROM DWS_CMSK.HS03_FMCS_TARGET_VALUE_FILLING_PRJ_CS
-            WHERE DN = DATE_FORMAT(DATE_SUB(CURRENT_DATE, 1), yyyy-MM) 
-          ) TARGET_DATA
-    ON  ORG_DIM.PROJECT_ID = TARGET_DATA.PROJECT_ID
-   AND DATE_DIM.DATE_M = TARGET_DATA.DN
-where ORG_DIM.COMPANY != '虚拟项目'      -- 2024-11-27新增过滤条件：伊敦日报过滤掉虚拟项目数据
-;
-
-
+datasource string ,
+DW_SNSH_DT  string
+)     COMMENT   '系统日志' partitioned by(p_day string) row format delimited fields terminated by '\u0001' stored as rcfile;
+with aaa as (
+    select * from nbbb
+    left join ccc on 1=2
+)
+INSERT overwrite TABLE ods_cmsk.HOEST0165_USER_VISIT_HISTORY_SS PARTITION(p_day)
+SELECT
+   ID 
+  ,IP 
+  ,VISIT_TYPE 
+  ,STAFF_USER_ID 
+  ,STAFF_USER_NAME 
+  ,FIRST_CODE 
+  ,FIRST_NAME 
+  ,MENU_CODE 
+  ,MENU_NAME 
+  ,CREATE_DAY 
+  ,REVISION 
+  ,CREATED_BY 
+  ,CREATE_TIME 
+  ,UPDATED_BY 
+  ,UPDATE_TIME 
+,
+'stg_cmsk.HGEST0165_USER_VISIT_HISTORY' as datasource,
+CURRENT_TIMESTAMP as DW_SNSH_DT,
+  DATE_FORMAT(CURRENT_DATE,'yyyy-MM') AS P_DAY
+FROM(
+select * from stg_cmsk.HGEST0165_USER_VISIT_HISTORY where 1=3) t
+left join ddd on d=g
 
 """
 sqlglot.pretty = True
 
 aaa = extract_tables(script)
-

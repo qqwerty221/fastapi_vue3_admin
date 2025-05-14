@@ -173,7 +173,9 @@ class ScriptService:
 
 
             except Exception as e:
-                error_message = traceback.format_exc()
-                logger.error(f"异常原因: {error_message}")
-                # logger.info(f'{script["script_name"]}脚本解析异常')
+                # error_message = traceback.format_exc()
+                # logger.error(f"异常原因: {error_message}")
+                logger.info(f'{script["script_name"]}脚本解析异常')
                 continue
+
+
