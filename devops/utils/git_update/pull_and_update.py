@@ -77,7 +77,7 @@ repositories = [
     {"app": "cmsk_ias", "git": "https://code-inc.cmft.com/CMSK/ias/cmsk-ias-data.git"},
     {"app": "cmsk_idp", "git": "https://code-inc.cmft.com/CMSK/smartdata/cmsk-idp.git"},
     {"app": "cmsk_ipbi", "git": "https://code-inc.cmft.com/CMSK/IPBI/cmsk-ipbi.git"},
-    {"app": "cmsk_marketcloud", "git": "https://code-inc.cmft.com/CMSK/marketcloud/cmsk-marketcloud.git"},
+    {"app": "cmsk_marketcloud", "git": "https://code-inc.cmft.c om/CMSK/marketcloud/cmsk-marketcloud.git"},
     {"app": "cmsk_mobi", "git": "https://code-inc.cmft.com/CMSK/MOBI/cmsk-mobi-bigdata.git"},
     {"app": "cmsk_pda", "git": "https://code-inc.cmft.com/CMSK/PDA/cmsk-pda-bigdata.git"},
     {"app": "cmsk_pdm", "git": "https://code-inc.cmft.com/CMSK/PDM/cmsk-pdm-bigdata.git"},

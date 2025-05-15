@@ -4,14 +4,18 @@ import sqlglot
 def extract_tables(script):
     # 获取分区表分区字段
     parsed_dialog_list = sqlglot.parse(script)
-    for i in parsed_dialog_list:
-        if isinstance(i, sqlglot.exp.Insert):
-            if 'partition' in i.args['this'].args:
-                print(",".join([col_name.name for col_name in i.args['this'].args['partition'].args['expressions']]))
-            if isinstance(i.args['expression'], sqlglot.exp.Select):
-                print(i.args['expression'].selects[-1].this)
+    # for i in parsed_dialog_list:
+    #     if isinstance(i, sqlglot.exp.Insert):
+    #         if 'partition' in i.args['this'].args:
+    #             print(",".join([col_name.name for col_name in i.args['this'].args['partition'].args['expressions']]))
+    #
+    #             if isinstance(i.args['expression'], sqlglot.exp.Select):
+    #                 print(i.args['expression'].selects[-1].this)
 
-    # 获取
+    for i in parsed_dialog_list:
+        for node in i.walk():
+            if isinstance(node,sqlglot.exp.Select):
+                print(node)
 
 
 
