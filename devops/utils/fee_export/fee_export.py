@@ -6,7 +6,7 @@ from playwright.sync_api import sync_playwright, Page, BrowserContext
 
 year = "2025"
 
-for month in ['4','5']:
+for month in ['5']:
     # 获取当前文件的绝对路径
     folder_path = os.path.dirname(os.path.abspath(__file__))
     config_folder = os.path.join(folder_path, "config")

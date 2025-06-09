@@ -20,7 +20,7 @@ class ScriptService:
     """脚本服务"""
 
     @classmethod
-    async def get_script_list(cls, auth: AuthSchema, search: ScriptQueryParams=None) -> List[Dict]:
+    async def get_script_list(cls, auth: AuthSchema, search: ScriptQueryParams = None) -> List[Dict]:
         """获取脚本列表"""
         if not search:
             search = ScriptQueryParams(
@@ -49,7 +49,7 @@ class ScriptService:
         return new_script_dict
 
     @classmethod
-    async def create_dialog_service(cls, auth: AuthSchema, script_id: int, data: List[DialogCreateSchema]) -> None:
+    async def create_dialog_service(cls, auth: AuthSchema, script_id: int, data: List[DialogCreateSchema], database_type: str) -> None:
         dialog_ids = await DialogCRUD(auth).get_ids_by_script_id(script_id=script_id)
         try:
             await DialogCRUD(auth).delete(ids=dialog_ids)
@@ -57,7 +57,7 @@ class ScriptService:
             for dialog in data:
                 new_dialog = await DialogCRUD(auth).create(data=dialog)
 
-            await ScriptCRUD(auth).set(ids=[script_id], is_parsed=True)
+            await ScriptCRUD(auth).set(ids=[script_id], is_parsed=True, script_type=database_type)
         except Exception as e:
             auth.db.rollback()
             raise CustomException(msg=f'{script_id}语句创建失败')
@@ -138,44 +138,49 @@ class ScriptService:
                                                                               ))
         for script in result_dict_list:
             try:
-                parsed_dialog_list = sqlglot.parse(script['script_content'])
+
+                for database_type in ['hive', 'postgres', 'mysql']:
+                    try:
+                        parsed_dialog_list = sqlglot.parse(script['script_content'],dialect=database_type)
+                        if parsed_dialog_list:
+                            break
+                    except Exception as e:
+                        logger.info('not' + database_type)
+                        continue
+
                 create_dialog_list = []
 
                 for index, dialog in enumerate(parsed_dialog_list, start=1):
                     source_tables = set()
                     cte_to_remove = set()
                     target_tables = set()
-                    node_list = dialog.walk()
-                    for node in node_list:
-                        if isinstance(node, sqlglot.exp.Table):
-                            source_tables.add(node.name)
-                        if isinstance(node, (sqlglot.exp.CTE, sqlglot.exp.Subquery)):
-                            cte_to_remove.add(node.alias)
-                        if isinstance(node, (sqlglot.exp.Insert, sqlglot.exp.Create)):
-                            target_tables.add(node.this.this.name)
+                    if dialog:
+                        node_list = dialog.walk()
+                        for node in node_list:
+                            if isinstance(node, sqlglot.exp.Table):
+                                source_tables.add(node.name)
+                            if isinstance(node, (sqlglot.exp.CTE, sqlglot.exp.Subquery)):
+                                cte_to_remove.add(node.alias)
+                            if isinstance(node, (sqlglot.exp.Insert, sqlglot.exp.Create)):
+                                target_tables.add(node.this.this.name)
 
-                    source_tables = source_tables - target_tables - cte_to_remove
-
-                    create_dialog = DialogCreateSchema(
-                        id=None,
-                        script_id=script['id'],
-                        dialog_type=dialog.__class__.__name__,
-                        dialog_content=dialog.sql(),
-                        dialog_parsed=dialog.dump(),
-                        dialog_order=index,
-                        target_tables=target_tables,
-                        source_tables=source_tables
-                    )
-
-                    create_dialog_list.append(create_dialog)
-
-                await cls.create_dialog_service(auth=auth, script_id=script["id"], data=create_dialog_list)
+                        source_tables = source_tables - target_tables - cte_to_remove
+                        create_dialog = DialogCreateSchema(
+                            id=None,
+                            script_id=script['id'],
+                            dialog_type=dialog.__class__.__name__,
+                            dialog_content=dialog.sql(),
+                            dialog_parsed=dialog.dump(),
+                            dialog_order=index,
+                            target_tables=target_tables,
+                            source_tables=source_tables
+                        )
+                        create_dialog_list.append(create_dialog)
+                await cls.create_dialog_service(auth=auth, script_id=script["id"], data=create_dialog_list,database_type=database_type.upper())
 
 
             except Exception as e:
-                # error_message = traceback.format_exc()
-                # logger.error(f"异常原因: {error_message}")
+                error_message = traceback.format_exc()
+                logger.error(f"异常原因: {error_message}")
                 logger.info(f'{script["script_name"]}脚本解析异常')
                 continue
-
-
