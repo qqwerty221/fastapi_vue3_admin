@@ -37,6 +37,8 @@ class Settings(BaseSettings):
     # ================================================= #
     # 项目根目录
     BASE_DIR: Path = Path(__file__).parent.parent.parent
+    #脚本根目录
+    SCRIPT_BASE: Path = Path("devops/utils/git_update/repositories")
 
     # ================================================= #
     # ******************* 服务器配置 ****************** #
@@ -91,16 +93,18 @@ class Settings(BaseSettings):
     ECHO_POOL: bool = False             # 是否显示连接池日志
     POOL_SIZE: int = 20                 # 连接池大小
     MAX_OVERFLOW: int = 10              # 最大溢出连接数
-    POOL_TIMEOUT: int = 30              # 连接超时时间(秒)
-    POOL_RECYCLE: int = 1800            # 连接回收时间(秒)
+    POOL_TIMEOUT: int = 3600            # 连接超时时间(秒)
+    POOL_RECYCLE: int = 3600            # 连接回收时间(秒)
     POOL_PRE_PING: bool = True          # 是否开启连接预检
     FUTURE: bool = True                 # 是否使用SQLAlchemy 2.0特性
     AUTOCOMMIT: bool = False            # 是否自动提交
     AUTOFETCH: bool = False             # 是否自动获取
     EXPIRE_ON_COMMIT: bool = False      # 是否在提交时过期
 
+    # 数据库类型
+    DB_DRIVER: str = 'postgresql'
+
     # SQLite数据库连接
-    DB_DRIVER: str
     SQLITE_DB_NAME: str
 
     # MySQL数据库连接
@@ -111,28 +115,28 @@ class Settings(BaseSettings):
     MYSQL_DB_NAME: str
 
     # PostgreSQL数据库连接
-    POSTGRESQL_USER: str
-    POSTGRESQL_PASSWORD: str
-    POSTGRESQL_HOST: str
-    POSTGRESQL_PORT: int
-    POSTGRESQL_DB_NAME: str
+    POSTGRESQL_USER: str = 'fastapi'
+    POSTGRESQL_PASSWORD: str = 'fastapi-root'
+    POSTGRESQL_HOST: str = 'localhost'
+    POSTGRESQL_PORT: int = '5432'
+    POSTGRESQL_DB_NAME: str = 'fastapi'
 
     # ================================================= #
     # ******************** MongoDB配置 ******************* #
     # ================================================= #
-    MONGO_DB_ENABLE: bool # 是否启用MongoDB
-    MONGO_DB_USER: str
-    MONGO_DB_PASSWORD: str
-    MONGO_DB_HOST: str
-    MONGO_DB_PORT: int
+    MONGO_DB_ENABLE: bool = True # 是否启用MongoDB
+    MONGO_DB_USER: str = 'fastapi'
+    MONGO_DB_PASSWORD: str = 'fastapi-root'
+    MONGO_DB_HOST: str = 'localhost'
+    MONGO_DB_PORT: int = '27017'
     MONGO_DB_NAME: str
 
     # ================================================= #
     # ******************** Redis配置 ******************* #
     # ================================================= #
-    REDIS_ENABLE: bool  # 是否启用Redis
-    REDIS_HOST: str
-    REDIS_PORT: int
+    REDIS_ENABLE: bool = True # 是否启用Redis
+    REDIS_HOST: str = 'localhost'
+    REDIS_PORT: int = '6379'
     REDIS_DB_NAME: int
     REDIS_PASSWORD: str
 

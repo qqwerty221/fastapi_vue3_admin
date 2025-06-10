@@ -3,12 +3,13 @@
 import importlib
 import uuid
 
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import declarative_base
 from typing import Any, List, Dict, Sequence, Optional
 
 from app.core.logger import logger
 from app.core.exceptions import CustomException
 
+Base = declarative_base()
 
 def import_module(module: str, desc: str) -> Any:
     """
@@ -54,7 +55,7 @@ def get_random_character() -> str:
     """生成随机字符串"""
     return uuid.uuid4().hex
 
-def get_parent_id_map(model_list: Sequence[DeclarativeBase]) -> Dict[int, int]:
+def get_parent_id_map(model_list: Sequence[Base]) -> Dict[int, int]:
     """
     获取父级ID映射字典
     :param model_list: 模型列表
@@ -83,7 +84,7 @@ def get_parent_recursion(
         get_parent_recursion(parent_id, id_map, ids)
     return ids
 
-def get_child_id_map(model_list: Sequence[DeclarativeBase]) -> Dict[int, List[int]]:
+def get_child_id_map(model_list: Sequence[Base]) -> Dict[int, List[int]]:
     """
     获取子级ID映射字典
     :param model_list: 模型列表

@@ -1,0 +1,72 @@
+[
+    {
+        "name": "_a",
+        "value": "5001cfa7f5022826edab9ad024ce85c2cad82282cd971980fc0e2509ded5e5d90ccc8ef2aef2a50a90088f092e92f0fb0da3",
+        "domain": ".cmft.com",
+        "path": "/",
+        "expires": 1746557555,
+        "httpOnly": false,
+        "secure": false,
+        "sameSite": "Lax"
+    },
+    {
+        "name": "tenant_id",
+        "value": "14554985ea2c471ab6943ba109a59c31",
+        "domain": ".cloud.cmft.com",
+        "path": "/",
+        "expires": 1746557556,
+        "httpOnly": false,
+        "secure": false,
+        "sameSite": "Lax"
+    },
+    {
+        "name": "tenant_name",
+        "value": "CMSK",
+        "domain": ".cmft.com",
+        "path": "/",
+        "expires": 1746557556,
+        "httpOnly": false,
+        "secure": false,
+        "sameSite": "Lax"
+    },
+    {
+        "name": "project_id",
+        "value": "5d775ead39aa41c598291a5663d0483e",
+        "domain": ".cloud.cmft.com",
+        "path": "/",
+        "expires": 1746557556,
+        "httpOnly": false,
+        "secure": false,
+        "sameSite": "Lax"
+    },
+    {
+        "name": "project_name",
+        "value": "AAS",
+        "domain": ".cmft.com",
+        "path": "/",
+        "expires": 1746557556,
+        "httpOnly": false,
+        "secure": false,
+        "sameSite": "Lax"
+    },
+    {
+        "name": "tenant_id_pub",
+        "value": "14554985ea2c471ab6943ba109a59c31",
+        "domain": ".cmft.com",
+        "path": "/",
+        "expires": 1746557556,
+        "httpOnly": false,
+        "secure": false,
+        "sameSite": "Lax"
+    },
+    {
+        "name": "project_id_pub",
+        "value": "5d775ead39aa41c598291a5663d0483e",
+        "domain": ".cmft.com",
+        "path": "/",
+        "expires": 1746557556,
+        "httpOnly": false,
+        "secure": false,
+        "sameSite": "Lax"
+    }
+]
