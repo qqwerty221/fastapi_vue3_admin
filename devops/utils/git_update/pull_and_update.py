@@ -148,4 +148,3 @@ repositories = [
 update_and_count_repos(base_dir)
 # 清空
 # reset_git(repositories, base_dir)
-
