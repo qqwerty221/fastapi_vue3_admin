@@ -143,7 +143,7 @@ repositories = [
 ]
 
 # 初始化
-# init_and_clone(repositories,base_dir)
+init_and_clone(repositories,base_dir)
 # 更新
 update_and_count_repos(base_dir)
 # 清空

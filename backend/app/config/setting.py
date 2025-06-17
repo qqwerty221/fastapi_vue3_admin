@@ -117,7 +117,7 @@ class Settings(BaseSettings):
     # PostgreSQL数据库连接
     POSTGRESQL_USER: str = 'fastapi'
     POSTGRESQL_PASSWORD: str = 'fastapi-root'
-    POSTGRESQL_HOST: str = 'localhost'
+    POSTGRESQL_HOST: str = '10.124.160.153'
     POSTGRESQL_PORT: int = '5432'
     POSTGRESQL_DB_NAME: str = 'fastapi'
 
@@ -127,7 +127,7 @@ class Settings(BaseSettings):
     MONGO_DB_ENABLE: bool = True # 是否启用MongoDB
     MONGO_DB_USER: str = 'fastapi'
     MONGO_DB_PASSWORD: str = 'fastapi-root'
-    MONGO_DB_HOST: str = 'localhost'
+    MONGO_DB_HOST: str = '10.124.160.153'
     MONGO_DB_PORT: int = '27017'
     MONGO_DB_NAME: str
 
@@ -135,7 +135,7 @@ class Settings(BaseSettings):
     # ******************** Redis配置 ******************* #
     # ================================================= #
     REDIS_ENABLE: bool = True # 是否启用Redis
-    REDIS_HOST: str = 'localhost'
+    REDIS_HOST: str = '10.124.160.153'
     REDIS_PORT: int = '6379'
     REDIS_DB_NAME: int
     REDIS_PASSWORD: str

@@ -158,11 +158,11 @@ class ScriptService:
                         node_list = dialog.walk()
                         for node in node_list:
                             if isinstance(node, sqlglot.exp.Table):
-                                source_tables.add(node.name)
+                                source_tables.add(node.name.lower())
                             if isinstance(node, (sqlglot.exp.CTE, sqlglot.exp.Subquery)):
-                                cte_to_remove.add(node.alias)
+                                cte_to_remove.add(node.alias.lower())
                             if isinstance(node, (sqlglot.exp.Insert, sqlglot.exp.Create)):
-                                target_tables.add(node.this.this.name)
+                                target_tables.add(node.this.this.name.lower())
 
                         source_tables = source_tables - target_tables - cte_to_remove
                         create_dialog = DialogCreateSchema(
