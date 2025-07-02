@@ -1,0 +1,111 @@
+{
+  "JOB": {
+    "@JOBISN": "7",
+    "@APPLICATION": "CMSK",
+    "@SUB_APPLICATION": "CMSK_POR",
+    "@JOBNAME": "JOB_HA01_JINGFEN_KPI_LR_SS_CD",
+    "@CREATED_BY": "e5c91722-6809-4d80-a636-5f89af6c1d05",
+    "@RUN_AS": "CMSK_POR",
+    "@CRITICAL": "0",
+    "@TASKTYPE": "Job",
+    "@CYCLIC": "0",
+    "@NODEID": "CyberNew_1_Agent_Group",
+    "@INTERVAL": "00006M",
+    "@CONFIRM": "0",
+    "@RETRO": "0",
+    "@MAXWAIT": "0",
+    "@MAXRERUN": "6",
+    "@AUTOARCH": "1",
+    "@MAXDAYS": "0",
+    "@MAXRUNS": "0",
+    "@TIMEFROM": "0430",
+    "@JAN": "0",
+    "@FEB": "0",
+    "@MAR": "0",
+    "@APR": "0",
+    "@MAY": "0",
+    "@JUN": "0",
+    "@JUL": "0",
+    "@AUG": "0",
+    "@SEP": "0",
+    "@OCT": "0",
+    "@NOV": "0",
+    "@DEC": "0",
+    "@DAYS_AND_OR": "O",
+    "@SHIFTNUM": "+00",
+    "@SYSDB": "1",
+    "@IND_CYCLIC": "S",
+    "@CREATION_USER": "a2feaf3b-aefb-4144-a55a-c7858bb63da6",
+    "@CREATION_DATE": "20240429",
+    "@CREATION_TIME": "131258",
+    "@CHANGE_USERID": "a2feaf3b-aefb-4144-a55a-c7858bb63da6",
+    "@CHANGE_DATE": "20241206",
+    "@CHANGE_TIME": "155012",
+    "@RULE_BASED_CALENDAR_RELATIONSHIP": "O",
+    "@APPL_TYPE": "CYBERNCYEW",
+    "@APPL_VER": "8.0.00.200",
+    "@APPL_FORM": "CYBERNCYEW",
+    "@CM_VER": "8.0.00.200",
+    "@MULTY_AGENT": "N",
+    "@USE_INSTREAM_JCL": "N",
+    "@VERSION_OPCODE": "N",
+    "@IS_CURRENT_VERSION": "Y",
+    "@VERSION_SERIAL": "2",
+    "@VERSION_HOST": "10.200.88.96, 100.73.29.65, 100.77.29.49",
+    "@CYCLIC_INTERVAL_SEQUENCE": "+0M",
+    "@CYCLIC_TOLERANCE": "0",
+    "@CYCLIC_TYPE": "C",
+    "@PARENT_FOLDER": "CMSK_POR_CD",
+    "@END_FOLDER": "N",
+    "VARIABLE": [
+      {
+        "@NAME": "%%UCM-ACCOUNT",
+        "@VALUE": "CMSK_POR"
+      },
+      {
+        "@NAME": "%%UCM-APP_NAME",
+        "@VALUE": "CYBERNCYEW"
+      },
+      {
+        "@NAME": "%%UCM-JOB_PIPELINEPATH",
+        "@VALUE": "/Controlm/ADS_JOB/FIN"
+      },
+      {
+        "@NAME": "%%UCM-JOB_NAME",
+        "@VALUE": "JOB_HA01_JINGFEN_KPI_LR_SS"
+      }
+    ],
+    "INCOND": {
+      "@NAME": "JOB_HQL_HS02_SALES_PROFIT_REPORT_LR_SS_CD-TO-JOB_HA01_JINGFEN_KPI_LR_SS_CD",
+      "@ODATE": "ODAT",
+      "@AND_OR": "A"
+    },
+    "OUTCOND": [
+      {
+        "@NAME": "JOB_HA01_JINGFEN_KPI_LR_SS_CD-TO-JOB_HA01_JINGFEN_KPI_LR_SS_TO_SQLSERVER_CD",
+        "@ODATE": "ODAT",
+        "@SIGN": "+"
+      },
+      {
+        "@NAME": "JOB_HA01_JINGFEN_KPI_LR_SS_CD-TO-JOB_HA01_KPI_LR_UPDATETIME_SS_CD",
+        "@ODATE": "ODAT",
+        "@SIGN": "+"
+      },
+      {
+        "@NAME": "JOB_HQL_HS02_SALES_PROFIT_REPORT_LR_SS_CD-TO-JOB_HA01_JINGFEN_KPI_LR_SS_CD",
+        "@ODATE": "ODAT",
+        "@SIGN": "-"
+      }
+    ],
+    "RULE_BASED_CALENDARS": {
+      "@NAME": "*"
+    },
+    "ON": {
+      "@STMT": "*",
+      "@CODE": "NOTOK",
+      "DOACTION": {
+        "@ACTION": "RERUN"
+      }
+    }
+  }
+}

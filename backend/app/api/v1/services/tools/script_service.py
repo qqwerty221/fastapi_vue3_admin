@@ -113,8 +113,8 @@ class ScriptService:
                         import_script = ScriptCreateSchema(
                             id=None,
                             app_name=app_name,
-                            script_name=file.replace("\.sql", ""),
-                            script_path=file_path.replace(base_path, "").replace('\\' + app_name + '\\', ""),
+                            script_name=file.replace(".sql", "").lower(),
+                            script_path=file_path.replace(base_path, "").replace('/' + app_name , "").replace(".sql", "").lower(),
                             script_content=content,
                             is_parsed=False,
                             script_type=script_type,

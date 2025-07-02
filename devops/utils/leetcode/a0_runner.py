@@ -63,9 +63,22 @@ start = time.perf_counter()
 # MaximumSubarray1 = MaximumSubarray().maxSubArray([-2,1,-3,4,-1,2,1,-5,4])
 # print(MaximumSubarray1)
 
-from a763_PartitionLabels import Solution as PartitionLabels
-PartitionLabels1 = PartitionLabels().partitionLabels(s='eiurvtyksrusnrvetjenkeurxnleunlsevhlhloiriqropmxiznxtrjnernhjshsnmxrvvzseyenmxhevhtrvtkthynlriykusvkuhresliyuyjtrsrtverkstrinuhosrypmsrtimuhshjxsvsxhjsnjnkhrjzjmxjzjymxjmxrmzzsmzmjzuuoonunyuxynkxnsnjhnjnuhtinsteunkytsyerjytxqeytreytjretyrtertenoretkrtntrnynprpnunoyonyuxmhmnxhnmhxnkxuyyunkxlelkslsrinabcabcabcbacbacbacbcabacbacbacbacbacbacbcabacbacbacbacbacbacbfgfgfgdfgdfgdfgdfgdfgdfgdfgdfgdfgdfgdfgdfgdfgdfgdfgdfgdfgdfgdfgdgfdf')
-print(PartitionLabels1)
+# from a763_PartitionLabels import Solution as PartitionLabels
+# PartitionLabels1 = PartitionLabels().partitionLabels(s='eiurvtyksrusnrvetjenkeurxnleunlsevhlhloiriqropmxiznxtrjnernhjshsnmxrvvzseyenmxhevhtrvtkthynlriykusvkuhresliyuyjtrsrtverkstrinuhosrypmsrtimuhshjxsvsxhjsnjnkhrjzjmxjzjymxjmxrmzzsmzmjzuuoonunyuxynkxnsnjhnjnuhtinsteunkytsyerjytxqeytreytjretyrtertenoretkrtntrnynprpnunoyonyuxmhmnxhnmhxnkxuyyunkxlelkslsrinabcabcabcbacbacbacbcabacbacbacbacbacbacbcabacbacbacbacbacbacbfgfgfgdfgdfgdfgdfgdfgdfgdfgdfgdfgdfgdfgdfgdfgdfgdfgdfgdfgdfgdfgdgfdf')
+# print(PartitionLabels1)
+
+# from a69_sqrtx import Solution as sqrtx
+# sqrtx1 = sqrtx().mySqrt(8)
+# print(sqrtx1)
+
+# from a540_SingleElementinaSortedArray import Solution as SingleElementinaSortedArray
+# SingleElementinaSortedArray1 = SingleElementinaSortedArray().singleNonDuplicate([1,1,2,3,3,4,4,8,8])
+# print(SingleElementinaSortedArray1)
+
+from a153_FindMinimuminRotatedSortedArray import Solution as FindMinimuminRotatedSortedArray
+FindMinimuminRotatedSortedArray1 = FindMinimuminRotatedSortedArray().findMin([4,5,6,7,0,1,2])
+print(FindMinimuminRotatedSortedArray1)
+
 
 end = time.perf_counter()
 print(f"运行时间：{(end - start) * 1000:.3f} 毫秒")
