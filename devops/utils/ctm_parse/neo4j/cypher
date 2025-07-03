@@ -1,0 +1,27 @@
+// 🔄 删除现有数据（可选）
+// 注意：执行此语句将清空整个图数据库，请谨慎使用
+// MATCH (n) DETACH DELETE n;
+
+// 🧱 创建两个 Person 节点
+CREATE (alice:Person {name: 'Alice'})
+CREATE (bob:Person {name: 'Bob'})
+
+// 🔗 创建 Alice -> Bob 的关系
+CREATE (alice)-[:KNOWS]->(bob)
+
+// 🛠️ 给 Alice 添加年龄属性
+MATCH (a:Person {name: 'Alice'})
+SET a.age = 30
+
+// 🔍 查询当前图中所有 Person 节点的 name 属性
+MATCH (p:Person)
+RETURN p.name
+
+// 🗑️ 删除 Bob 节点及其所有关联关系（可选）
+MATCH (b:Person {name: 'Bob'})
+DETACH DELETE b
+
+// 🌐 创建两个城市节点并建立关系（子图示例）
+CREATE (tokyo:City {name: 'Tokyo'})
+CREATE (osaka:City {name: 'Osaka'})
+CREATE (tokyo)-[:CONNECTED_TO]->(osaka)

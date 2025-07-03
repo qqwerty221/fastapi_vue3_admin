@@ -211,61 +211,95 @@ def parse_xml_to_db(file_path, batch_size=10000):
 
 
 # 分析作业影响范围
-def impact_analyse():
-    query = text("SELECT * FROM parser.impact_analyse(:id, 'ALL' )")
-    object_to_add = []
-    batch_count = 0
-    batch_size = 1000
+# def impact_analyse():  --效率太低，卡死
+#     query = text("SELECT * FROM parser.impact_analyse(:id, 'ALL' )")
+#     object_to_add = []
+#     batch_count = 0
+#     batch_size = 1000
+#
+#     # 获取下一个对象ID
+#     ids = session.query(ObjectExtend.id).order_by(ObjectExtend.id).all()
+#     for row in ids:
+#         result = session.execute(query, {"id": row.id, "app_to_skip": ''})
+#         for id_list in result:
+#             # new_record = ObjectImpact(
+#             #     obj_id=row.id,
+#             #     impact_ids=id_list.id[0]  # 可以是逗号分隔的字符串
+#             # )
+#             object_to_add.append({'obj_id': int(row.id), 'impact_ids': int(id_list.id)})
+#
+#             # print(str(row.id) + ',', end="")
+#
+#         # 处理最后一批未满batch_size的数据
+#         if object_to_add:
+#             session.bulk_insert_mappings(ObjectImpact, [obj for obj in object_to_add])
+#             session.commit()
+#             object_to_add.clear()
+#
+#     print("done")
 
-    # 获取下一个对象ID
-    ids = session.query(ObjectExtend.id).order_by(ObjectExtend.id).all()
-    for row in ids:
-        result = session.execute(query, {"id": row.id, "app_to_skip": ''})
-        for id_list in result:
-            # new_record = ObjectImpact(
-            #     obj_id=row.id,
-            #     impact_ids=id_list.id[0]  # 可以是逗号分隔的字符串
-            # )
-            object_to_add.append({'obj_id': int(row.id), 'impact_ids': int(id_list.id)})
+#
+# def transform_to_json():   -- 效率太低，废弃
+#     obj = {}
+#
+#     name = 'JOB_HQL_P_DWD_CMSK_HD03_FMCS_PROFILE_RUN_MONTH_CS_CD'
+#
+#     obj[name] = {}
+#
+#     todo1 = []
+#     todo1.append(name)
+#
+#     def loop_test(input_ame):
+#         query = text("SELECT general_name FROM parser.object_extend where :name = any(from_object) ;")
+#         result = session.execute(query, {'name': input_ame})
+#         output = {}
+#         for row in result:
+#             todo1.append(row.general_name)
+#             output[row.general_name] = {}
+#
+#         return output
+#
+#     while len(todo1) > 0:
+#         p_name = todo1[0]
+#         output_dict = loop_test(p_name)
+#         todo1.pop(0)
+#         expr = parse('$..' + p_name)
+#         for match in expr.find(obj):
+#             match.full_path.update(obj, output_dict)
 
-            # print(str(row.id) + ',', end="")
+def transform_to_graph():
+    # 数据库连接配置
+    DATABASE_URI_AGE = 'postgresql://pgage:pgage-root@10.124.160.153:7688/postgres'
+    # 创建数据库引擎
+    engine_age = create_engine(DATABASE_URI_AGE)
+    # 创建会话工厂，使用scoped_session确保线程安全
+    Session_age = scoped_session(sessionmaker(bind=engine_age))
+    session_age = Session_age()
 
-        # 处理最后一批未满batch_size的数据
-        if object_to_add:
-            session.bulk_insert_mappings(ObjectImpact, [obj for obj in object_to_add])
-            session.commit()
-            object_to_add.clear()
+    # 初始化graph数据库
+    session_age.execute(text("LOAD 'age';"))
+    session_age.execute(text("SET search_path = ag_catalog, '$user', public;"))
 
-    print("done")
+    # 构建基础查询
+    # 查询条件：查找objectextend里的所有对象
+    query = (
+        select(ObjectExtend.id, ObjectExtend.sub_application, ObjectExtend.object_type, ObjectExtend.general_name)
+        .where(ObjectExtend.sub_application.isnot(None))
+    )
 
+    object_list = session.execute(query).all()
+    obj_count = 0
 
-def test():
-    obj = {}
+    for obj in object_list:
+        obj_count += 1
+        create_stmt = text("select * from cypher('my_graph', $$ CREATE (p:"
+                           + obj.object_type + " {obj_app:'" + obj.sub_application
+                           + "',obj_id:'" + str(obj.id)
+                           + "',obj_name:'" + obj.general_name + "'})$$) as (name agtype)")
+        result = session_age.execute(create_stmt)
+        session_age.commit()
 
-    name = 'JOB_HQL_P_DWD_CMSK_HD03_FMCS_PROFILE_RUN_MONTH_CS_CD'
-
-    obj[name] = {}
-
-    todo = []
-    todo.append(name)
-
-    def loop_test(input_ame):
-        query = text("SELECT general_name FROM parser.object_extend where :name = any(from_object) ;")
-        result = session.execute(query, {'name': input_ame})
-        output = {}
-        for row in result:
-            todo.append(row.general_name)
-            output[row.general_name] = {}
-
-        return output
-
-    while len(todo) > 0:
-        p_name = todo[0]
-        output_dict = loop_test(p_name)
-        todo.pop(0)
-        expr = parse('$..' + p_name)
-        for match in expr.find(obj):
-            match.full_path.update(obj, output_dict)
+    print(obj_count, '=', len(object_list))
 
 
 def generate_config_file(
@@ -552,12 +586,9 @@ if __name__ == '__main__':
         end_time = time.time()
         print(f"处理时间: {end_time - start_time} 秒")
 
-
     # 取消注释以执行相应功能
     # parse_init()
     # custom_generate()
-
-    test()
-
+    transform_to_graph()
     # 用于配置文件对比的功能（已注释）
     # compare_xml_files( './output_config.xml', '../asset/Workspace_256.txt')
