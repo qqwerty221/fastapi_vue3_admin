@@ -1,0 +1,21 @@
+version: '3.8'
+
+
+services:
+  postgres:
+    image: apache/age
+    container_name: pg_age
+    environment:
+      POSTGRES_USER: pgage
+      POSTGRES_PASSWORD: pgage-root
+      POSTGRES_DB: postgres
+    ports:
+      - "7688:5432"
+    networks:
+      - database_database_network
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./data/logs/postgres:/var/log/postgresql
+networks:
+  database_database_network:
+    external: true  # 表示这个网络已存在
