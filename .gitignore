@@ -4,11 +4,13 @@
 .chat
 .DS_Store
 .iml
+.dot
 __pycache__
 
 venv
 
 devops/database/data
+devops/database/pg_age/data
 devops/database/milvus
 devops/utils/fee_export/config
 devops/utils/git_update/repositories

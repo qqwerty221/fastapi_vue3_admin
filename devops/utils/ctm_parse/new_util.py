@@ -1,8 +1,7 @@
 # 导入SQLAlchemy相关组件，用于数据库操作
-from jsonpath_ng import parse
 from sqlalchemy import create_engine, Column, Integer, String, JSON, ForeignKey, Text, select, ARRAY, or_, MetaData, \
     text
-from sqlalchemy.orm import relationship, scoped_session, declarative_base
+from sqlalchemy.orm import relationship, scoped_session, declarative_base, aliased
 from sqlalchemy.orm.session import sessionmaker
 # 导入lxml的etree模块，用于XML处理
 from lxml import etree as ET
@@ -280,7 +279,7 @@ def transform_to_graph():
     session_age.execute(text("LOAD 'age';"))
     session_age.execute(text("SET search_path = ag_catalog, '$user', public;"))
 
-    # 构建基础查询
+    #1) 将所有的节点添加到age（FOLDER，SUB_FOLDER，SMART_FOLDER，JOB）
     # 查询条件：查找objectextend里的所有对象
     query = (
         select(ObjectExtend.id, ObjectExtend.sub_application, ObjectExtend.object_type, ObjectExtend.general_name)
@@ -288,17 +287,40 @@ def transform_to_graph():
     )
 
     object_list = session.execute(query).all()
-    obj_count = 0
 
     for obj in object_list:
-        obj_count += 1
         create_stmt = text("select * from cypher('my_graph', $$ CREATE (p:"
                            + obj.object_type + " {obj_app:'" + obj.sub_application
                            + "',obj_id:'" + str(obj.id)
                            + "',obj_name:'" + obj.general_name + "'})$$) as (name agtype)")
         result = session_age.execute(create_stmt)
-        session_age.commit()
 
+    #2) 添加FOLDER关系依赖
+    # 查询条件：查找objectchain里的所有对象关系
+    Parent = aliased(ObjectExtend)
+
+    query = (
+        select(
+            ObjectExtend.id.label("obj_id"),
+            ObjectExtend.object_type.label("child_type"),
+            ObjectExtend.parent_id.label("prt_id"),
+            Parent.object_type.label("prt_type")
+        )
+        .join(Parent, ObjectExtend.parent_id == Parent.id, isouter=True)
+        .where(Parent.object_type.isnot(None))
+        .distinct()
+    )
+
+    object_list = session.execute(query).all()
+
+    for obj in object_list:
+        create_stmt = text("select * from cypher('my_graph', $$ CREATE (p:"
+                           + obj.object_type + " {obj_app:'" + obj.sub_application
+                           + "',obj_id:'" + str(obj.id)
+                           + "',obj_name:'" + obj.general_name + "'})$$) as (name agtype)")
+        result = session_age.execute(create_stmt)
+
+    #3) 添加依赖关系依赖
     print(obj_count, '=', len(object_list))
 
 
