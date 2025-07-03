@@ -1,8 +1,7 @@
 version: '3.8'
 
-
 services:
-  postgres:
+  age-db:
     image: apache/age
     container_name: pg_age
     environment:
@@ -16,6 +15,7 @@ services:
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
       - ./data/logs/postgres:/var/log/postgresql
+
 networks:
   database_database_network:
     external: true  # 表示这个网络已存在
