@@ -324,10 +324,18 @@ alter function parser.impact_analyse(integer, text ) owner to fastapi;
 select * from parser.impact_analyse(276004, 'ALL' ) ;
 
 -- 对象影响分析表
-create table parser.object_impact(
-    obj_id     varchar(100)
-   ,impact_ids text
-) ;
+DROP TABLE IF EXISTS parser.object_impact CASCADE;
+
+CREATE TABLE parser.object_impact (
+                                      obj_id        INTEGER PRIMARY KEY,
+                                      decendant_ids INTEGER[]
+);
+
+ALTER TABLE parser.object_impact OWNER TO fastapi;
+
+
+
+
 
 select t1.object_type,count(*)
 from parser.folder_extend t
@@ -347,4 +355,19 @@ select * from parser.object_extend where general_name like '%JOB_HZ_IF_EXISTS_DA
 select *
 from parser.object_extend t
 --  where t.general_name = 'JOB_HQL_P_ODS_CMSK_HOEST0141_BASE_PORT_SS_CD'
-where 'JOB_HQL_P_ODS_CMSK_HOEST0141_BASE_PORT_SS_CD' =  any(t.from_object)
+where 'JOB_HQL_P_ODS_CMSK_HOEST0141_BASE_PORT_SS_CD' =  any(t.from_object) ;
+
+drop view parser.object_decendant ;
+create view parser.object_decendant as
+with frame as (select t.obj_id, unnest(t.decendant_ids) as decendant_ids
+               from parser.object_impact t)
+   , all_data as (
+    select t.obj_id,t1.sub_application,t1.general_name as obj_name,t1.object_type,t2.general_name as decendant_name,t2.object_type,t2.id as decendant_id
+    from frame t
+             left join parser.object_extend t1 on t.obj_id = t1.id
+             left join parser.object_extend t2 on t.decendant_ids = t2.id
+)
+select t.obj_id,t.sub_application,t.obj_name,string_agg(t.decendant_name,',' order by t.decendant_id)
+from all_data t
+group by t.obj_id,t.sub_application, t.obj_name ;
+select * from parser.object_decendant ;

@@ -105,10 +105,14 @@ from t_script_info
 group by script_type,is_parsed,is_deleted
 order by script_type,is_parsed,is_deleted;
 
--- truncate table public.t_script_info ;
--- truncate table public.t_dialog_info ;
+truncate table public.t_script_info ;
+truncate table public.t_dialog_info ;
 
-create table t_all_table(
+select * from public.t_script_info ;
+
+
+
+create table t_all_table(postgres
                             app_name   text
     ,table_name text
 ) ;
@@ -256,8 +260,8 @@ FROM (SELECT t1.id                                                  AS script_id
           LEFT JOIN LATERAL unnest(t_1.target_tables) t_t(tt1) ON true) t
 GROUP BY script_id, app_name, script_name, path_arr, script_type;
 
-alter table t_dialog_table_list
-    owner to fastapi;
+alter table t_dialog_table_list owner to fastapi;
+select * from public.t_dialog_table_list ;
 
 -- 作业与脚本的关系
 create table public.t_job_list (
@@ -328,10 +332,4 @@ from public.t_script_info t
                    on t2.script_name like concat('%',t.script_name,'%')
 where org_obj is not null
 group by t.app_name, t.script_name
-       ,t2.app_name,t2.job_name-- , t.script_content ;
-
-
-
-
-
-
+       ,t2.app_name,t2.job_name ;

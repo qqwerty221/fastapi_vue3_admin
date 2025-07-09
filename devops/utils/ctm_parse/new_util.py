@@ -7,9 +7,13 @@ from sqlalchemy.orm.session import sessionmaker
 from lxml import etree as ET
 import time
 import os
+import networkx as nx
+import pandas as pd
+from py2neo import Graph, Node, Relationship
 
 # 数据库连接配置
 DATABASE_URI = 'postgresql://fastapi:fastapi-root@10.124.160.153/fastapi'
+
 # 创建数据库引擎
 engine = create_engine(DATABASE_URI)
 # 创建会话工厂，使用scoped_session确保线程安全
@@ -122,7 +126,17 @@ class ObjectImpact(Base):
     __table_args__ = {'schema': 'parser'}
 
     obj_id = Column(Integer, primary_key=True, comment="对象唯一标识")
-    impact_ids = Column(Integer, comment="受影响的id")
+    decendant_ids = Column(ARRAY(Integer), comment="所有下游节点")
+
+
+class GetObjectRelation(Base):
+    __tablename__ = 'get_object_relation'
+    __table_args__ = {'schema': 'parser'}
+
+    from_obj_id = Column(Integer, primary_key=True)  # 如果没有唯一键，可以临时设为 composite 主键
+    from_obj_type = Column(String)
+    to_obj_id = Column(Integer, primary_key=True)
+    to_obj_type = Column(String)
 
 
 def parse_xml_to_db(file_path, batch_size=10000):
@@ -209,120 +223,150 @@ def parse_xml_to_db(file_path, batch_size=10000):
     print("解析完成")
 
 
-# 分析作业影响范围
-# def impact_analyse():  --效率太低，卡死
-#     query = text("SELECT * FROM parser.impact_analyse(:id, 'ALL' )")
-#     object_to_add = []
-#     batch_count = 0
-#     batch_size = 1000
-#
-#     # 获取下一个对象ID
-#     ids = session.query(ObjectExtend.id).order_by(ObjectExtend.id).all()
-#     for row in ids:
-#         result = session.execute(query, {"id": row.id, "app_to_skip": ''})
-#         for id_list in result:
-#             # new_record = ObjectImpact(
-#             #     obj_id=row.id,
-#             #     impact_ids=id_list.id[0]  # 可以是逗号分隔的字符串
-#             # )
-#             object_to_add.append({'obj_id': int(row.id), 'impact_ids': int(id_list.id)})
-#
-#             # print(str(row.id) + ',', end="")
-#
-#         # 处理最后一批未满batch_size的数据
-#         if object_to_add:
-#             session.bulk_insert_mappings(ObjectImpact, [obj for obj in object_to_add])
-#             session.commit()
-#             object_to_add.clear()
-#
-#     print("done")
-
-#
-# def transform_to_json():   -- 效率太低，废弃
-#     obj = {}
-#
-#     name = 'JOB_HQL_P_DWD_CMSK_HD03_FMCS_PROFILE_RUN_MONTH_CS_CD'
-#
-#     obj[name] = {}
-#
-#     todo1 = []
-#     todo1.append(name)
-#
-#     def loop_test(input_ame):
-#         query = text("SELECT general_name FROM parser.object_extend where :name = any(from_object) ;")
-#         result = session.execute(query, {'name': input_ame})
-#         output = {}
-#         for row in result:
-#             todo1.append(row.general_name)
-#             output[row.general_name] = {}
-#
-#         return output
-#
-#     while len(todo1) > 0:
-#         p_name = todo1[0]
-#         output_dict = loop_test(p_name)
-#         todo1.pop(0)
-#         expr = parse('$..' + p_name)
-#         for match in expr.find(obj):
-#             match.full_path.update(obj, output_dict)
-
 def transform_to_graph():
-    # 数据库连接配置
-    DATABASE_URI_AGE = 'postgresql://pgage:pgage-root@10.124.160.153:7688/postgres'
-    # 创建数据库引擎
-    engine_age = create_engine(DATABASE_URI_AGE)
-    # 创建会话工厂，使用scoped_session确保线程安全
-    Session_age = scoped_session(sessionmaker(bind=engine_age))
-    session_age = Session_age()
+    # 初始化有向图
+    graph = nx.DiGraph()
 
-    # 初始化graph数据库
-    session_age.execute(text("LOAD 'age';"))
-    session_age.execute(text("SET search_path = ag_catalog, '$user', public;"))
+    def escape_quotes(value: str) -> str:
+        return value.replace("'", "''") if value else ''
 
-    #1) 将所有的节点添加到age（FOLDER，SUB_FOLDER，SMART_FOLDER，JOB）
-    # 查询条件：查找objectextend里的所有对象
-    query = (
-        select(ObjectExtend.id, ObjectExtend.sub_application, ObjectExtend.object_type, ObjectExtend.general_name)
-        .where(ObjectExtend.sub_application.isnot(None))
-    )
-
-    object_list = session.execute(query).all()
-
-    for obj in object_list:
-        create_stmt = text("select * from cypher('my_graph', $$ CREATE (p:"
-                           + obj.object_type + " {obj_app:'" + obj.sub_application
-                           + "',obj_id:'" + str(obj.id)
-                           + "',obj_name:'" + obj.general_name + "'})$$) as (name agtype)")
-        result = session_age.execute(create_stmt)
-
-    #2) 添加FOLDER关系依赖
-    # 查询条件：查找objectchain里的所有对象关系
-    Parent = aliased(ObjectExtend)
-
-    query = (
-        select(
-            ObjectExtend.id.label("obj_id"),
-            ObjectExtend.object_type.label("child_type"),
-            ObjectExtend.parent_id.label("prt_id"),
-            Parent.object_type.label("prt_type")
+    def add_all_nodes():
+        query = (
+            select(ObjectExtend.id, ObjectExtend.sub_application,
+                   ObjectExtend.object_type, ObjectExtend.general_name)
+            .where(ObjectExtend.sub_application.isnot(None))
         )
-        .join(Parent, ObjectExtend.parent_id == Parent.id, isouter=True)
-        .where(Parent.object_type.isnot(None))
-        .distinct()
-    )
+        object_list = session.execute(query).all()
+        for obj in object_list:
+            graph.add_node(obj.id,
+                           obj_app=obj.sub_application,
+                           obj_name=obj.general_name,
+                           obj_type=obj.object_type)
+        print(f"✅ 添加节点数：{graph.number_of_nodes()}")
 
-    object_list = session.execute(query).all()
+    def add_folder_edges():
+        print("🔹 添加 FOLDER -> 子节点 关系...")
+        Parent = aliased(ObjectExtend)
+        query = (
+            select(Parent.id.label("prt_id"),
+                   ObjectExtend.id.label("obj_id"))
+            .join(Parent, ObjectExtend.parent_id == Parent.id, isouter=True)
+            .where(Parent.object_type.isnot(None))
+            .distinct()
+        )
+        relations = session.execute(query).all()
+        for rel in relations:
+            graph.add_edge(rel.prt_id, rel.obj_id, type='CONTAIN')
+        print(f"✅ 当前总边数：{graph.number_of_edges()}")
 
-    for obj in object_list:
-        create_stmt = text("select * from cypher('my_graph', $$ CREATE (p:"
-                           + obj.object_type + " {obj_app:'" + obj.sub_application
-                           + "',obj_id:'" + str(obj.id)
-                           + "',obj_name:'" + obj.general_name + "'})$$) as (name agtype)")
-        result = session_age.execute(create_stmt)
+    def add_dependency_edges():
+        print("🔹 添加 TO 依赖关系...")
+        query = select(GetObjectRelation.from_obj_id, GetObjectRelation.to_obj_id)
+        relations = session.execute(query).all()
+        for rel in relations:
+            graph.add_edge(rel.from_obj_id, rel.to_obj_id, type='TO')
+        print(f"✅ 当前总边数：{graph.number_of_edges()}")
 
-    #3) 添加依赖关系依赖
-    print(obj_count, '=', len(object_list))
+    def impact_analyse():
+        print("🔍 开始下游影响分析（全路径）...")
+        count = 0
 
+        for obj_id in graph.nodes:
+            count += 1
+            try:
+                # 获取所有下游节点（不含自身）
+                downstream_nodes = nx.descendants(graph, obj_id)
+                decendant_ids = [int(n) for n in downstream_nodes]
+
+                record = ObjectImpact(
+                    obj_id=obj_id,
+                    decendant_ids=decendant_ids
+                )
+                session.add(record)
+
+                if count % 100 == 0:
+                    session.commit()
+
+            except Exception as e:
+                print(f"[❗] 节点 {obj_id} 分析失败: {e}")
+                session.rollback()
+
+        session.commit()
+        print(f"🎯 共处理 {count} 个 JOB 节点，已写入 object_impact 表。")
+
+    def save_graph():
+
+        folder_path = os.path.join(os.path.dirname(__file__), "graph_query")
+
+        # 将节点信息转换为 DataFrame
+        node_data = pd.DataFrame.from_dict(dict(graph.nodes(data=True)), orient="index")
+        node_data.reset_index(inplace=True)
+        node_data.rename(columns={"index": "node_id"}, inplace=True)
+
+        # 将边信息转换为 DataFrame
+        edge_data = nx.to_pandas_edgelist(graph)
+
+        # 保存为 Parquet 文件
+        node_data.to_parquet(os.path.join(folder_path, "nodes.parquet"), index=False)
+        edge_data.to_parquet(os.path.join(folder_path, "edges.parquet"), index=False)
+
+    def read_graph():
+        folder_path = os.path.join(os.path.dirname(__file__), "graph_query")
+        nodes_df = pd.read_parquet(os.path.join(folder_path, "nodes.parquet"))
+        edges_df = pd.read_parquet(os.path.join(folder_path, "edges.parquet"))
+
+        # 构建 NetworkX 图
+        G_new = nx.from_pandas_edgelist(edges_df, source="source", target="target", edge_attr=True)
+        for _, row in nodes_df.iterrows():
+            node_id = row["node_id"]
+            G_new.add_node(node_id)
+            G_new.nodes[node_id].update(row.drop("node_id").to_dict())
+
+        # 导出 GraphML
+        graphml_path = os.path.join(folder_path, "graph.graphml")
+        nx.write_graphml(G_new, graphml_path)
+        print(f"✅ graphml 导出完成：{graphml_path}")
+
+        # 使用 py2neo 同步图到 Neo4j
+        graph = Graph("bolt://10.124.160.153:7687", auth=("neo4j", "password123"))
+
+        # 可选：清空旧数据
+        graph.run("MATCH (n) DETACH DELETE n")
+
+        # 创建节点
+        for node_id, attrs in G_new.nodes(data=True):
+            label = attrs.get("obj_app", "Node")  # 如果有 label 字段就用它，否则统一使用 Node
+            node = Node(label, id=str(node_id), **{k: str(v) for k, v in attrs.items() if k != "obj_app"})
+            graph.merge(node, label, "id")  # 防止重复导入
+
+        # 创建关系
+        for source, target, attrs in G_new.edges(data=True):
+            source_id, target_id = str(source), str(target)
+            source_node = graph.nodes.match(id=source_id).first()
+            target_node = graph.nodes.match(id=target_id).first()
+
+            if source_node and target_node:
+                rel_type = attrs.get("type", "RELATED_TO")
+                rel_props = {k: str(v) for k, v in attrs.items()}
+                rel = Relationship(source_node, rel_type, target_node, **{k: str(v) for k, v in attrs.items() if k != "type"})
+
+                graph.merge(rel)
+
+        print("📊 图结构已同步至 Neo4j")
+        print("节点数：", G_new.number_of_nodes(), "边数：", G_new.number_of_edges())
+
+
+    def transform_to_graph():
+        print("\n🚀 启动图转换流程（NetworkX + PostgreSQL）")
+        add_all_nodes()
+        add_folder_edges()
+        add_dependency_edges()
+        impact_analyse()  # 如需可开启
+        save_graph()
+        print("🎉 图结构构建完成")
+
+    # transform_to_graph()
+    read_graph()
 
 def generate_config_file(
         sub_application_filter: list[str] | None = None,
@@ -586,8 +630,7 @@ if __name__ == '__main__':
         # 构建XML文件路径
         file_path = os.path.join(os.path.dirname(__file__), "asset", "Workspace_300.xml")
         # 执行解析和导入
-        # parse_xml_to_db(file_path=file_path, batch_size=10000)
-        impact_analyse()
+        parse_xml_to_db(file_path=file_path, batch_size=10000)
         # 计算并打印处理时间
         end_time = time.time()
         print(f"处理时间: {end_time - start_time} 秒")
@@ -608,9 +651,11 @@ if __name__ == '__main__':
         end_time = time.time()
         print(f"处理时间: {end_time - start_time} 秒")
 
+
     # 取消注释以执行相应功能
     # parse_init()
     # custom_generate()
+    # 将对象关系转存至pg age
     transform_to_graph()
     # 用于配置文件对比的功能（已注释）
     # compare_xml_files( './output_config.xml', '../asset/Workspace_256.txt')

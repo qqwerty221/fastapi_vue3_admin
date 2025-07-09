@@ -55,11 +55,11 @@ class ScriptService:
             await DialogCRUD(auth).delete(ids=dialog_ids)
 
             for dialog in data:
-                new_dialog = await DialogCRUD(auth).create(data=dialog)
+                await DialogCRUD(auth).create(data=dialog)
 
             await ScriptCRUD(auth).set(ids=[script_id], is_parsed=True, script_type=database_type)
+
         except Exception as e:
-            auth.db.rollback()
             raise CustomException(msg=f'{script_id}语句创建失败')
 
     @classmethod

@@ -62,7 +62,7 @@ def update_and_count_repos(base_dir):
                 print(f"[{item}] 更新失败: {e.stderr.strip()}")
             except Exception as e:
                 print(f"[{item}] 发生未知错误: {str(e)}")
-
+    print("update_complete!")
 
 
 def init_and_clone(repositories, base_dir):
@@ -78,7 +78,7 @@ def init_and_clone(repositories, base_dir):
                 clone_repository(app_name, git_url, app_dir)
         else:
             clone_repository(app_name, git_url, app_dir)
-
+    print("init complete")
 
 def reset_git(repositories, base_dir):
     commands = [

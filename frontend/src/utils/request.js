@@ -9,7 +9,7 @@ import { message } from 'ant-design-vue';
 // 创建 axios 实例
 const request = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
-  timeout: import.meta.env.VITE_TIMEOUT, // 请求超时时间
+  timeout: Number(import.meta.env.VITE_TIMEOUT), // 请求超时时间
 });
 
 // 异常拦截处理器
