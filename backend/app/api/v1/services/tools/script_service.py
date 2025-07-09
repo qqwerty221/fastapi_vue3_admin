@@ -110,10 +110,6 @@ class ScriptService:
                             logger.info(msg=f'读取文件{file_path}失败: {str(e)}')
                             continue
 
-                        if script_type == 'DI':
-                            content = json.dump(content)
-
-
                         import_script = ScriptCreateSchema(
                             id=None,
                             app_name=app_name,
