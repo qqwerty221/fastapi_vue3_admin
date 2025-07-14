@@ -229,7 +229,8 @@ SELECT job_extend.id,
        job_extend.to_object,
        job_extend.is_schedule,
        job_extend.folder_rbc_type,
-       job_extend.appl_type
+       job_extend.appl_type,
+       now() as time_st
 FROM parser.job_extend
 UNION ALL
 SELECT folder_extend.id,
@@ -247,7 +248,8 @@ SELECT folder_extend.id,
        folder_extend.to_object,
        folder_extend.is_schedule,
        folder_extend.folder_rbc_type,
-       folder_extend.appl_type
+       folder_extend.appl_type,
+       now() as time_st
 FROM parser.folder_extend
 WITH NO DATA;
 alter materialized view parser.object_extend owner to fastapi;
@@ -281,15 +283,6 @@ WITH RECURSIVE cte AS (
 select * from cte ;
 select * from parser.object_chain ;
 
--- 对象影响分析表
-DROP TABLE IF EXISTS parser.object_impact CASCADE;
-
-CREATE TABLE parser.object_impact (
-                                      obj_id        INTEGER PRIMARY KEY,
-                                      decendant_ids INTEGER[]
-);
-
-ALTER TABLE parser.object_impact OWNER TO fastapi;
 
 
 
@@ -307,3 +300,15 @@ select t.obj_id,t.sub_application,t.obj_name,string_agg(t.decendant_name,',' ord
 from all_data t
 group by t.obj_id,t.sub_application, t.obj_name ;
 select * from parser.object_decendant ;
+
+
+
+-- 对象影响分析表
+DROP TABLE IF EXISTS parser.object_impact CASCADE;
+
+CREATE TABLE parser.object_impact (
+                                      obj_id        INTEGER PRIMARY KEY,
+                                      decendant_ids INTEGER[]
+);
+
+ALTER TABLE parser.object_impact OWNER TO fastapi;
