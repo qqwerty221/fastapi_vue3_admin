@@ -95,10 +95,9 @@ where script_content like '%\u0001%' ;
 
 -- 清理问题语句
 update t_script_info set script_content = replace(script_content,'\u001','\u0001') ;
-update t_script_info set script_content = replace(script_content,'"','''') ;
+-- update t_script_info set script_content = replace(script_content,'"','''') ;
 update t_script_info set script_content = replace(script_content,'`',' ') ;
 update t_script_info set script_content = replace(script_content,'/tmp','''/tmp''') ;
-update t_script_info set script_content = replace(script_content,'''','"') where script_type = 'DI';
 commit ;
 
 select script_type,count(*),is_parsed,is_deleted
@@ -176,7 +175,7 @@ with frame as (
     select t.script_content
       from t_script_info t
     where t.script_type = 'DI'
-      and t.script_type like '%\$%'
+      and t.script_content like '%=%$%'
 )
 select t.app_name
      ,regexp_replace(t.source_table->>'table', '[\[\]\"\\`]', '', 'g') as st
@@ -339,3 +338,26 @@ from public.t_script_info t
 where org_obj is not null
 group by t.app_name, t.script_name
        ,t2.app_name,t2.job_name ;
+
+
+
+select *
+  from public.t_dialog_table_list t
+ where t.script_type = 'DI'
+
+;
+
+
+select t.app_name
+     ,t.script_name as di_name
+     ,t.script_content
+     ,regexp_replace(
+        jsonb_path_query(cast(t.script_content as jsonb)
+            , '$.job.content[*].reader.parameter.connection[*].table[0]')::text
+    , '[\[\]\"\\`]', '', 'g') as st
+     ,regexp_replace(
+        jsonb_path_query(cast(t.script_content as jsonb)
+            , '$.job.content[*].writer.parameter.connection[*].table[0]')::text
+    , '[\[\]\"\\`]', '', 'g') as tt
+from t_script_info t
+where t.script_type = 'DI'

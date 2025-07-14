@@ -4,7 +4,7 @@ truncate table parser.object_impact ;
 
 -- 关联CTM对象与属性
 drop view if exists parser.controlm_object_with_attr cascade;
-create view parser.controlm_object_with_attr
+create or replace view parser.controlm_object_with_attr
             (id, parent_id, sub_application, object_type, general_name, dependency_name, hierarchy_level,
              position_in_parent, json_object_agg, from_object, to_object)
 as
@@ -14,6 +14,7 @@ WITH frame AS (SELECT t_1.id,
                       t_1.name,
                       t_1.hierarchy_level,
                       t_1.position_in_parent,
+                      max(case when t1.attribute_name = 'VALUE' then t1.attribute_value else null end) as attr_name,
                       json_object_agg(t1.attribute_name, t1.attribute_value) AS json_object_agg,
                       COALESCE(json_object_agg(t1.attribute_name, t1.attribute_value) ->> 'SUB_APPLICATION'::text,
                                NULL::text)                                   AS sub_application,
@@ -40,7 +41,7 @@ SELECT id,
            WHEN name = ''::text THEN COALESCE(foldername, jobname)
            ELSE name
            END                       AS general_name,
-       COALESCE(foldername, jobname) AS dependency_name,
+       case when t.name = '%%UCM-JOB_NAME' then attr_name else null end AS dependency_name,
        hierarchy_level,
        position_in_parent,
        json_object_agg,
@@ -123,6 +124,7 @@ from parser.controlm_object_with_attr t
 where t.object_type in ('RULE_BASED_CALENDAR', 'RULE_BASED_CALENDARS') ;
 select * from parser.rbc
 where parent_id = 249098;
+
 
 -- 上下游关系
 drop view if exists parser.io_cond cascade;
@@ -279,50 +281,6 @@ WITH RECURSIVE cte AS (
 select * from cte ;
 select * from parser.object_chain ;
 
--- 分析作业对下游的影响
-drop function if exists parser.impact_analyse ;
-create function parser.impact_analyse(job_id integer, sub_app text)
-    returns TABLE(id integer)
-    language plpgsql
-as
-$$
-BEGIN
-RETURN QUERY
-    WITH RECURSIVE cte AS (
-            SELECT t.id,
-                   t.parent_id,
-                   t.sub_application,
-                   t.object_type,
-                   t.general_name,
-                   t.from_object,
-                   t.to_object,
-                   t.general_name as depend_chain
-            FROM parser.object_extend t
---     WHERE t.from_object is null
-            where t.id = job_id
-            UNION ALL
-
-            SELECT t.id,
-                   t.parent_id,
-                   t.sub_application,
-                   t.object_type,
-                   t.general_name,
-                   t.from_object,
-                   t.to_object,
-                   concat(t1.depend_chain,',',t.general_name) as depend_chain
-             FROM parser.object_extend t
-             JOIN(select unnest(string_to_array(sub_app,',')) as apps) t2
-               ON t.sub_application = case when sub_app = 'ALL' then t.sub_application else t2.apps end
-             JOIN cte t1 ON t1.general_name = any(t.from_object)
-        )
-    select distinct t.id::integer
-      from cte t
-     order by 1 ;
-END;
-$$;
-alter function parser.impact_analyse(integer, text ) owner to fastapi;
-select * from parser.impact_analyse(276004, 'ALL' ) ;
-
 -- 对象影响分析表
 DROP TABLE IF EXISTS parser.object_impact CASCADE;
 
@@ -335,29 +293,7 @@ ALTER TABLE parser.object_impact OWNER TO fastapi;
 
 
 
-
-
-select t1.object_type,count(*)
-from parser.folder_extend t
-         left join parser.controlm_objects t1
-                   on t.parent_id = t1.id
-group by t1.object_type ;
-
-select t1.object_type,count(*)
-from parser.job_extend t
-         left join parser.controlm_objects t1
-                   on t.parent_id = t1.id
-group by t1.object_type ;
-
-select * from parser.object_extend t where 'JOB_HQL_P_ODS_CMSK_HOEST0106_ATA_WIDE_HZ_DATAPHOTODETAIL_NEW_SS' = any(t.from_object)
-select * from parser.object_extend where general_name like '%JOB_HZ_IF_EXISTS_DATA_CD%' ;
-
-select *
-from parser.object_extend t
---  where t.general_name = 'JOB_HQL_P_ODS_CMSK_HOEST0141_BASE_PORT_SS_CD'
-where 'JOB_HQL_P_ODS_CMSK_HOEST0141_BASE_PORT_SS_CD' =  any(t.from_object) ;
-
-drop view parser.object_decendant ;
+drop view if exists parser.object_decendant ;
 create view parser.object_decendant as
 with frame as (select t.obj_id, unnest(t.decendant_ids) as decendant_ids
                from parser.object_impact t)

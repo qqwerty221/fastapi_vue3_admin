@@ -155,6 +155,12 @@ def parse_xml_to_db(file_path, batch_size=10000):
     attributes_to_add = []
     batch_count = 0
 
+    table_lst = ['controlm_attributes','controlm_objects']
+    for tab in table_lst:
+        session.execute(text('TRUNCATE TABLE parser.' + tab + ';'))
+        session.commit()
+        print(tab + ' truncate done!')
+
     def _parse_element(element, parent_id, hierarchy_level):
         """递归解析XML元素
 
@@ -232,8 +238,16 @@ def transform_to_graph():
 
     def add_all_nodes():
         query = (
-            select(ObjectExtend.id, ObjectExtend.sub_application,
-                   ObjectExtend.object_type, ObjectExtend.general_name)
+            select(ObjectExtend.id
+                  ,ObjectExtend.sub_application
+                  ,ObjectExtend.object_type
+                  ,ObjectExtend.general_name
+                  ,ObjectExtend.is_schedule
+                  ,ObjectExtend.appl_type
+                  ,ObjectExtend.time_from
+                  ,ObjectExtend.cyclic
+                  ,ObjectExtend.cyclic_type
+                   )
             .where(ObjectExtend.sub_application.isnot(None))
         )
         object_list = session.execute(query).all()
@@ -241,7 +255,13 @@ def transform_to_graph():
             graph.add_node(obj.id,
                            obj_app=obj.sub_application,
                            obj_name=obj.general_name,
-                           obj_type=obj.object_type)
+                           obj_type=obj.object_type,
+                           is_schedule=obj.is_schedule,
+                           appl_type=obj.appl_type,
+                           time_from=obj.time_from,
+                           cyclic=obj.cyclic,
+                           cyclic_type=obj.cyclic_type
+                           )
         print(f"✅ 添加节点数：{graph.number_of_nodes()}")
 
     def add_folder_edges():
@@ -628,7 +648,7 @@ if __name__ == '__main__':
         """初始化函数：解析XML文件并导入数据库"""
         start_time = time.time()
         # 构建XML文件路径
-        file_path = os.path.join(os.path.dirname(__file__), "asset", "Workspace_300.xml")
+        file_path = os.path.join(os.path.dirname(__file__), "asset", "Workspace_223.xml")
         # 执行解析和导入
         parse_xml_to_db(file_path=file_path, batch_size=10000)
         # 计算并打印处理时间
@@ -653,9 +673,9 @@ if __name__ == '__main__':
 
 
     # 取消注释以执行相应功能
-    # parse_init()
+    parse_init()
     # custom_generate()
     # 将对象关系转存至pg age
-    transform_to_graph()
+    # transform_to_graph()
     # 用于配置文件对比的功能（已注释）
     # compare_xml_files( './output_config.xml', '../asset/Workspace_256.txt')
