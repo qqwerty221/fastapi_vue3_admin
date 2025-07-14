@@ -15,6 +15,7 @@ devops/database/milvus
 devops/utils/fee_export/config
 devops/utils/git_update/repositories
 devops/utils/ctm_parse/asset
+devops/database/Neo4j
 
 backend/logs
 backend/venv
