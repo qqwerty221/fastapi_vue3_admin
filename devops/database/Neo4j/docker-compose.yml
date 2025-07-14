@@ -6,21 +6,22 @@ services:
     container_name: neo4j
     restart: always
     ports:
-      - "7474:7474"
-      - "7687:7687"
+      - "7474:7474"     # HTTP 接口
+      - "7687:7687"     # Bolt 接口
     environment:
       - NEO4J_AUTH=neo4j/password123
       - NEO4J_dbms_memory_heap_initial__size=512m
       - NEO4J_dbms_memory_heap_max__size=1G
       - NEO4J_dbms_memory_pagecache_size=512m
     volumes:
-      - ./data:/data
-      - ./logs:/logs
-      - ./import:/var/lib/neo4j/import
-      - ./plugins:/plugins
+      - ./data/data:/data
+      - ./data/logs:/logs
+      - ./data/import:/var/lib/neo4j/import
+      - ./data/plugins:/plugins
+      - ./data/conf:/var/lib/neo4j/conf   # ✅ 添加配置挂载目录
     networks:
-      - database_database_network  # 添加到自定义网络
+      - database_database_network
 
 networks:
   database_database_network:
-    external: true  # 表示这个网络已存在
+    external: true
