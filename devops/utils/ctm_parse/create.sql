@@ -61,11 +61,11 @@ select t.id
      ,t.json_object_agg->>'CYCLIC_TIMES_SEQUENCE' as schedule_time
      ,t.json_object_agg->>'CYCLIC'                as cyclic
      ,t.json_object_agg->>'CYCLIC_TYPE'           as CYCLIC_TYPE
+     ,t.json_object_agg ->> 'RULE_BASED_CALENDAR_RELATIONSHIP' AS rbc_r_type
      ,t.json_object_agg
 from parser.controlm_object_with_attr t
 where t.object_type in ('FOLDER','SUB_FOLDER','SMART_FOLDER') ;
-select * from parser.folders
-where id = 296475;
+select * from parser.folders ;
 
 -- 作业表
 drop view if exists parser.jobs cascade ;
@@ -80,6 +80,7 @@ select t.id
      ,t.json_object_agg->>'CYCLIC'                as cyclic
      ,t.json_object_agg->>'CYCLIC_TYPE'           as CYCLIC_TYPE
      ,t.json_object_agg->>'APPL_TYPE'             as APPL_TYPE
+     ,t.json_object_agg ->> 'RULE_BASED_CALENDAR_RELATIONSHIP' AS rbc_r_type
      ,concat(t.json_object_agg->>'JAN'
     ,t.json_object_agg->>'FEB'
     ,t.json_object_agg->>'MAR'
@@ -95,8 +96,7 @@ select t.id
      ,t.json_object_agg
 from parser.controlm_object_with_attr t
 where t.object_type in ('JOB') ;
-select * from parser.jobs
-where parent_id = 248571;
+select * from parser.jobs ;
 
 -- 调度日历表
 drop view if exists parser.rbc cascade ;
@@ -122,8 +122,7 @@ select t.id
      ,t.json_object_agg
 from parser.controlm_object_with_attr t
 where t.object_type in ('RULE_BASED_CALENDAR', 'RULE_BASED_CALENDARS') ;
-select * from parser.rbc
-where parent_id = 249098;
+select * from parser.rbc ;
 
 
 -- 上下游关系
@@ -138,7 +137,9 @@ with cond_list as (select t.id
                               when t.object_type = 'OUTCOND' then split_part(t.json_object_agg ->> 'NAME', '-TO-', 2)
                               else null end as to_object
                    from parser.controlm_object_with_attr t
-                   where t.object_type in ('INCOND', 'OUTCOND'))
+                   where(t.object_type = 'INCOND')
+                      or(t.object_type = 'OUTCOND'
+                     and t.json_object_agg->>'SIGN' = '+'))
 select t.parent_id
      ,string_to_array(string_agg(t.from_object,','),',') as from_object
      ,string_to_array(string_agg(t.to_object,','),',')   as to_object
@@ -147,7 +148,7 @@ left join parser.controlm_object_with_attr t1 on t.parent_id = t1.id
 where t1.general_name <> coalesce(t.from_object,'0')
   and t1.general_name <> coalesce(t.to_object,'0')
 group by t.parent_id ;
-select * from parser.io_cond t where t.parent_id = 349391;
+select * from parser.io_cond t ;
 
 
 -- 文件夹 详细信息
@@ -195,13 +196,13 @@ select t.id
      ,t1.level
      ,t2.from_object
      ,t2.to_object
-     ,case when t1.rbc_type is null
-    or t1.rbc_type in ('None','none','NONE','!DAILY')
-    or t1.shift = 'Ignore Job'
-    or t.calender = '000000000000'
-    or t1.calender = '000000000000'
-    or(t3.level = 'Y' and t3.is_schedule = 0)
-               then 0
+     ,case when(t.rbc_r_type = 'R' and t1.rbc_type is null)    -- 强制要求rbc但rbc为空
+             or t1.rbc_type in ('None','none','NONE','!DAILY') -- rbc不调度
+             or t1.shift = 'Ignore Job'                        -- 跳过job
+             or t.calender = '000000000000'                    -- 没有调度日期
+             or t1.calender = '000000000000'
+             or(t1.rbc_type = '*' and t3.is_schedule = 0)         -- 可继承文件夹rbc，并文件夹rbc未调度
+           then 0
            else 1 end as is_schedule
      ,t3.rbc_type as folder_rbc_type
      ,t.APPL_TYPE
@@ -303,6 +304,50 @@ select * from parser.object_decendant ;
 
 
 
+
+
+drop view if exists parser.get_object_relation cascade ;
+create or replace view parser.get_object_relation as
+with from_cond as (select distinct
+                          t.parent_id
+                         ,unnest(t.from_object) as from_object
+                     from parser.io_cond t)
+, to_cond as (select distinct
+                     t.parent_id
+                    ,unnest(t.to_object) as to_object
+                from parser.io_cond t)
+, from_ as (
+   select t1.id           as from_obj_id
+         ,t1.object_type  as from_obj_type
+         ,t2.id           as to_obj_id
+         ,t2.object_type  as to_obj_type
+         ,'from_'         as rela_type
+     from from_cond t
+left join parser.object_extend t1
+       on t.from_object = t1.general_name
+left join parser.object_extend t2
+       on t.parent_id = t2.id )
+, _to as (
+   select t2.id            as from_obj_id
+         ,t2.object_type   as from_obj_type
+         ,t1.id            as to_obj_id
+         ,t1.object_type   as to_obj_type
+         ,'_to'            as rela_type
+     from to_cond t
+left join parser.object_extend t1
+       on t.to_object = t1.general_name
+left join parser.object_extend t2
+       on t.parent_id = t2.id
+)
+select * from from_ where from_obj_id is not null and to_obj_id is not null
+union all
+select * from _to where from_obj_id is not null and to_obj_id is not null
+;
+select * from parser.get_object_relation ;
+
+
+
+
 -- 对象影响分析表
 DROP TABLE IF EXISTS parser.object_impact CASCADE;
 
@@ -312,3 +357,14 @@ CREATE TABLE parser.object_impact (
 );
 
 ALTER TABLE parser.object_impact OWNER TO fastapi;
+
+
+select t.is_schedule,count(*)
+  from parser.object_extend t
+where t.sub_application = 'CMSK_BAP_WEDATA'
+ group by t.is_schedule ;
+
+select *
+  from parser.object_extend t
+ where t.sub_application = 'CMSK_BAP_WEDATA'
+   and t.is_schedule = '1'

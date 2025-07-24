@@ -137,6 +137,7 @@ class GetObjectRelation(Base):
     from_obj_type = Column(String)
     to_obj_id = Column(Integer, primary_key=True)
     to_obj_type = Column(String)
+    rela_type = Column(String)
 
 
 def parse_xml_to_db(file_path, batch_size=10000):
